@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { CaretDownOutlined } from '@ant-design/icons';
 import { Button, Dropdown, Modal, Space } from 'antd';
 import { styled } from 'styled-components';
@@ -9,11 +10,11 @@ import AddDNSRecordModal from '../components/modals/addDNSRecordModal.tsx';
 const viewItems = [
     {
         label: 'Domain',
-        key: '0',
+        key: 'domain',
     },
     {
         label: 'Record',
-        key: '1',
+        key: 'record',
     },
 ];
 
@@ -38,6 +39,7 @@ const Dashboard: React.FC = () => {
             <DashboardNavBar>
                 <NavBarHeading>
                     <h3>DNS MANAGER</h3>
+                    <Link to="/signup">Sign Up</Link>
                 </NavBarHeading>
                 <NavBarItems>
                     <Space>
@@ -69,9 +71,9 @@ const Dashboard: React.FC = () => {
                                 <ViewRecordTable />
                             </>
                         )
-                    : selectedViewMenu === '1' ? 
+                    : selectedViewMenu === 'record' ? 
                         <ViewRecordTable /> 
-                    : selectedViewMenu === '0' ? 
+                    : selectedViewMenu === 'domain' ? 
                         <ViewDomainTable /> 
                     : <span>To explore more about this page, check out the top of the page!</span>
                 }
@@ -93,11 +95,12 @@ const DashboardNavBar = styled.div`
 
 const NavBarHeading = styled.div`
     margin-left: 1%;
+    margin-right: auto;
 `;
 
 const NavBarItems = styled.div`
     display: flex;
-    margin-left: 70%;
+    margin-right: 0.8%;
 `;
 
 const NavBarDropdownButton = styled.div``;
