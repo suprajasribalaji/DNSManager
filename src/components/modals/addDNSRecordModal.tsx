@@ -5,25 +5,29 @@ const AWS = require("aws-sdk");
 
 type AddDNSRecordModalProps = {
   isDNSRecordModalOpen: boolean,
+  onCancel: () => void
 }
-const AddDNSRecordModal: React.FC <AddDNSRecordModalProps> = ({ isDNSRecordModalOpen }) => {
+const AddDNSRecordModal: React.FC <AddDNSRecordModalProps> = ({ isDNSRecordModalOpen, onCancel }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  
-  const showModal = () => {
-    setIsModalOpen(isDNSRecordModalOpen);
-  }
+
+  useEffect(() => {
+    if(isDNSRecordModalOpen) {
+      setIsModalOpen(true);
+    }
+  }, [isDNSRecordModalOpen])
 
   const handleOk = () => {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      setIsModalOpen(!isDNSRecordModalOpen);
+      setIsModalOpen(false);
     }, 3000);
   };
 
   const handleCancel = () => {
-    setIsModalOpen(!isDNSRecordModalOpen);
+    setIsModalOpen(false);
+    onCancel();
   };
 
   const YOUR_HOSTED_ZONE_ID = 'Z03475321WH1NH01XRPEQ';
@@ -77,7 +81,6 @@ const AddDNSRecordModal: React.FC <AddDNSRecordModalProps> = ({ isDNSRecordModal
 
   return (
     <div>
-      <Button onClick={showModal}>Add DNS Record</Button>
       <Modal
         visible={isModalOpen}
         title="Add Record"
