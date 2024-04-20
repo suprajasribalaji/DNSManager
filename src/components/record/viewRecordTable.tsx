@@ -26,9 +26,9 @@ const ViewRecordTable: React.FC = () => {
     const fetchDNSRecords = async () => {
       try {
         AWS.config.update({
-          // accessKeyId: 'AKIASRL7FVZFLJTGFBYT',
-          // secretAccessKey: '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',
-          // region: 'us-east-1'
+          accessKeyId: '',
+          secretAccessKey: '',
+          region: ''
       });
       
         const route53 = new AWS.Route53();
