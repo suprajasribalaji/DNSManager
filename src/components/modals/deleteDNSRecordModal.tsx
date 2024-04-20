@@ -5,9 +5,9 @@ import AWS from 'aws-sdk';
 type DeleteDNSRecordModalProps = {
   isDeleteButtonClicked: boolean,
   onCancel: () => void,
-  hostedZoneId: string, // Added hostedZoneId prop to specify the hosted zone ID
-  recordName: string, // Added recordName prop to specify the name of the record to delete
-  recordType: string, // Added recordType prop to specify the type of the record to delete
+  hostedZoneId: string,
+  recordName: string,
+  recordType: string,
 }
 
 const DeleteDNSRecordModal: React.FC<DeleteDNSRecordModalProps> = ({ isDeleteButtonClicked, onCancel, hostedZoneId, recordName, recordType }) => {
@@ -22,14 +22,12 @@ const DeleteDNSRecordModal: React.FC<DeleteDNSRecordModalProps> = ({ isDeleteBut
 
   const handleOk = () => {
     setLoading(true);
-    // Initialize AWS Route53
     const route53 = new AWS.Route53({
       accessKeyId: 'AKIASRL7FVZFLJTGFBYT',
       secretAccessKey: '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',
       region: 'us-east-1'
     });
 
-    // Construct params to delete the record
     const params = {
       ChangeBatch: {
         Changes: [
@@ -45,7 +43,6 @@ const DeleteDNSRecordModal: React.FC<DeleteDNSRecordModalProps> = ({ isDeleteBut
       HostedZoneId: hostedZoneId,
     };
 
-    // Make API call to delete the record
     route53.changeResourceRecordSets(params, function(err, data) {
       if (err) {
         message.error('Failed to delete DNS record');

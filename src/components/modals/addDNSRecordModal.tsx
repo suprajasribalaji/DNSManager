@@ -12,7 +12,7 @@ type AddDNSRecordModalProps = {
 const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalOpen, onCancel }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [form] = Form.useForm(); // Create form instance
+  const [form] = Form.useForm(); 
 
   useEffect(() => {
     if (isDNSRecordModalOpen) {
@@ -22,11 +22,9 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
 
   const handleOk = () => {
     setLoading(true);
-    // Submit the form data
     form
       .validateFields()
       .then(values => {
-        // Initialize AWS Route53
         const route53 = new AWS.Route53({
           accessKeyId: 'AKIASRL7FVZFLJTGFBYT',
           secretAccessKey: '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',
@@ -49,7 +47,7 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
               }
             ]
           },
-          HostedZoneId: 'Z03475321WH1NH01XRPEQ' // Replace with your hosted zone ID
+          HostedZoneId: 'Z03475321WH1NH01XRPEQ'
         };
 
         route53.changeResourceRecordSets(params, function(err, data) {

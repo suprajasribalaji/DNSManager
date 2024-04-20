@@ -45,7 +45,7 @@ const ViewRecordTable: React.FC = () => {
     const route53 = new AWS.Route53();
 
     const viewDNSRecord = async () => {
-      const domain = 'dnsmanager.live'; // You might want to replace this
+      const domain = 'dnsmanager.live'; 
       const params = {
         HostedZoneId: YOUR_HOSTED_ZONE_ID,
         StartRecordName: domain,
@@ -67,18 +67,14 @@ const ViewRecordTable: React.FC = () => {
         }));
         
         setDnsRecords(records);
-        setLoading(false); // Data fetching completed
+        setLoading(false); 
       } catch (error) {
         console.error('Error getting DNS records:', error.message);
-        setLoading(false); // Error occurred while fetching data
+        setLoading(false); 
       }
     };
 
     viewDNSRecord();
-
-    return () => {
-      // Cleanup code if needed
-    };
   }, []);
 
 
@@ -249,7 +245,7 @@ const ViewRecordTable: React.FC = () => {
               <ContentOfTable
                 columns={columns}
                 dataSource={filteredData}
-                onChange={() => {}} // Dummy function to prevent warning
+                onChange={() => {}} 
               />
             ) : (
               <LoadingText>No DNS records found</LoadingText>

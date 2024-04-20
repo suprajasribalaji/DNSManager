@@ -1,11 +1,11 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
-interface Props {
+interface RecordChartProps {
   chartData: { type: string; value: number }[];
 }
 
-const RecordChart: React.FC<Props> = ({ chartData }) => {
+const RecordChart: React.FC<RecordChartProps> = ({ chartData }) => {
   return (
     <LineChart
       width={800}

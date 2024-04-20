@@ -1,11 +1,11 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
-interface Props {
+interface DomainChartProps {
   chartData: { type: string; value: number }[];
 }
 
-const DomainChart: React.FC<Props> = ({ chartData }) => {
+const DomainChart: React.FC<DomainChartProps> = ({ chartData }) => {
   return (
     <LineChart
       width={800}
