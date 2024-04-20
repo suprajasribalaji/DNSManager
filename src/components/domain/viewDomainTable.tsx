@@ -14,7 +14,7 @@ interface DataType {
     key: React.Key;
     domainName: string;
     privacyStatus: boolean;
-    expirationDate: number; // Changed to number format
+    expirationDate: number; 
     autoRenew: boolean;
     transferLock: boolean;
 }
@@ -23,7 +23,7 @@ const data: DataType[] = [
     {
       key: '1',
       domainName: 'dnsmanager.live',
-      expirationDate: new Date('2025-11-01').getTime(), // Converted to number format
+      expirationDate: new Date('2025-11-01').getTime(), 
       privacyStatus: true,
       autoRenew: true,
       transferLock: false,
@@ -31,7 +31,7 @@ const data: DataType[] = [
     {
       key: '2',
       domainName: 'dnsmanager.com',
-      expirationDate: new Date('2024-04-04').getTime(), // Converted to number format
+      expirationDate: new Date('2024-04-04').getTime(), 
       privacyStatus: true,
       autoRenew: false,
       transferLock: true,
@@ -39,7 +39,7 @@ const data: DataType[] = [
     {
       key: '3',
       domainName: 'dnsmanager.world',
-      expirationDate: new Date('2027-08-27').getTime(), // Converted to number format
+      expirationDate: new Date('2027-08-27').getTime(), 
       privacyStatus: true,
       autoRenew: false,
       transferLock: true,
@@ -47,7 +47,7 @@ const data: DataType[] = [
     {
       key: '4',
       domainName: 'mydomain.com',
-      expirationDate: new Date('2025-07-09').getTime(), // Converted to number format
+      expirationDate: new Date('2025-07-09').getTime(), 
       privacyStatus: true,
       autoRenew: true,
       transferLock: false,
@@ -167,13 +167,12 @@ const ViewDomainTable: React.FC = () => {
               <span>{record[dataIndex] ? 'Enabled' : 'Disabled'}</span>
             ) : (
               dataIndex === 'expirationDate' ? (
-                <span>{monthsUntilExpiration(record[dataIndex])}</span> // Displaying months until expiration
+                <span>{monthsUntilExpiration(record[dataIndex])}</span> 
               ) : (
                 text
               )
             )
-        ),
-        
+        ), 
     });
 
     const columns: ColumnsType<DataType> = [
@@ -187,11 +186,11 @@ const ViewDomainTable: React.FC = () => {
         },
         {
           title: 'Months Until Expiration',
-          dataIndex: 'expirationDate', // Changed dataIndex
-          key: 'monthsUntilExpiration', // Changed key
+          dataIndex: 'expirationDate',
+          key: 'monthsUntilExpiration',
           width: '20%',
-          render: (text, record) => monthsUntilExpiration(record.expirationDate), // Rendering months
-          sorter: (a, b) => monthsUntilExpiration(a.expirationDate) - monthsUntilExpiration(b.expirationDate), // Change sorting function
+          render: (text, record) => monthsUntilExpiration(record.expirationDate), 
+          sorter: (a, b) => monthsUntilExpiration(a.expirationDate) - monthsUntilExpiration(b.expirationDate),
           sortDirections: ['descend', 'ascend'],
         },
         {
@@ -225,7 +224,7 @@ const ViewDomainTable: React.FC = () => {
   
       const dataForChart = data.map(domain => ({
         type: domain.domainName,
-        value: monthsUntilExpiration(domain.expirationDate), // Changed to months until expiration
+        value: monthsUntilExpiration(domain.expirationDate),
       }));
       
       setChartData(dataForChart);
@@ -235,9 +234,9 @@ const ViewDomainTable: React.FC = () => {
       <ViewTableOfDomain>
         {viewChart === true ? (
           <>
-          <DomainChart chartData = {chartData} />
-          <Button onClick={() => setViewChart(false)}>Back to Table</Button>
-        </>
+            <DomainChart chartData = {chartData} />
+            <Button onClick={() => setViewChart(false)}>Back to Table</Button>
+          </>
         ) : (
           <>
             <GlobalSearchOfTable>
@@ -263,7 +262,7 @@ const ViewDomainTable: React.FC = () => {
 export default ViewDomainTable;
 
 const ViewTableOfDomain = styled.div`
-    margin-top: 2%;
+  margin-top: 2%;
 `;
 
 const ViewChartButton = styled(Button)`
@@ -271,17 +270,17 @@ const ViewChartButton = styled(Button)`
 `;
 
 const GlobalSearchOfTable = styled.div`
-    display: flex;
+  display: flex;
 `;
 
 const GlobalSearchOfTableInputField = styled(Input)`
-    width: 12%;
-    margin-bottom: 1%;
-    justify-content: flex-end;
+  width: 12%;
+  margin-bottom: 1%;
+  justify-content: flex-end;
 `;
 
 const ViewContentOfTable = styled.div`
-    margin: 0.4%;
+  margin: 0.4%;
 `;
 
 const ContentOfTable = styled(Table)<{ columns: ColumnsType<DataType>; dataSource: DataType[] }>``;
