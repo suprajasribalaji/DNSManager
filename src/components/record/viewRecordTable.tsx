@@ -1,10 +1,12 @@
 import React, { useRef, useState } from 'react';
-import { SearchOutlined } from '@ant-design/icons';
+import { SearchOutlined, EditOutlined, DeleteRowOutlined } from '@ant-design/icons';
 import { Button, Input, InputRef, Space, Table } from 'antd';
 import type { ColumnsType, ColumnType } from 'antd/es/table';
 import Highlighter from 'react-highlight-words';
 import styled from 'styled-components';
 import DomainChart from '../charts/domainChart.tsx';
+import DeleteDNSRecordModal from '../modals/deleteDNSRecordModal.tsx';
+import EditDNSRecordModal from '../modals/editDNSRecordModal.tsx';
 
 type DataIndex = keyof DataType;
 
@@ -20,28 +22,9 @@ interface DataType {
     healthCheckId: string;
     evaluateTargetHealth: string;
     recordId: string;
+    editRecord: JSX.Element;
+    deleteRecord: JSX.Element;
 }
-
-const data: DataType[] = [
-    {
-        key: '1',
-        recordName: 'dnsmanager.live',
-        recordType: 'PTR',
-        routingPolicy: 'Failover',
-        differentiator: 'Primary',
-        alias: 'No',
-        valueOrRouteTrafficTo: [
-          'ns-1403.awsdns-47.org.',
-          'ns-826.awsdns-39.net.',
-          'ns-1990.awsdns-56.co.uk.',
-          'ns-314.awsdns-39.com.,'
-        ],
-        ttlInSeconds: 300,
-        healthCheckId: '21e321af-7c18-446d-a839-13449827a29c',
-        evaluateTargetHealth: '',
-        recordId: 'ptr-id-1',
-    },
-];
 
 const ViewRecordTable: React.FC = () => {
     const [searchText, setSearchText] = useState<string>('');
@@ -49,6 +32,16 @@ const ViewRecordTable: React.FC = () => {
     const [searchedColumn, setSearchedColumn] = useState<string>('');
     const searchInputOfColumn = useRef<InputRef>(null);
     const [viewChart, setViewChart] = useState<boolean>(false);
+    const [isEditButtonClicked, setIsEditButtonClicked] = useState<boolean>(false);
+    const [isDeleteButtonClicked, setIsDeleteButtonClicked] = useState<boolean>(false);
+    
+    const handleDeleteModalCancel = () => {
+      setIsDeleteButtonClicked(false);
+    };
+
+    const handleEditModalCancel = () => {
+      setIsEditButtonClicked(false);
+    };
 
     const handleViewChart = (value: boolean) => {
       setViewChart(value);
@@ -67,6 +60,57 @@ const ViewRecordTable: React.FC = () => {
         clearFilters();
         setSearchTextOfColumn('');
     };
+
+    const handleDeleteRecord = () => {
+      setIsDeleteButtonClicked(true);
+    }
+
+    const handleEditRecord = () => {
+      setIsEditButtonClicked(true);
+    }
+
+    const data: DataType[] = [
+      {
+          key: '0',
+          recordName: 'dnsmanager.live',
+          recordType: 'PTR',
+          routingPolicy: 'Failover',
+          differentiator: 'Primary',
+          alias: 'No',
+          valueOrRouteTrafficTo: [
+            'ns-1403.awsdns-47.org.',
+            'ns-826.awsdns-39.net.',
+            'ns-1990.awsdns-56.co.uk.',
+            'ns-314.awsdns-39.com.,'
+          ],
+          ttlInSeconds: 300,
+          healthCheckId: '21e321af-7c18-446d-a839-13449827a29c',
+          evaluateTargetHealth: '',
+          recordId: 'ptr-id-1',
+          editRecord: <Button type='link' onClick={handleEditRecord}><EditOutlined /></Button>,
+          deleteRecord: <Button type='link' onClick={handleDeleteRecord}><DeleteRowOutlined /></Button>, 
+      },
+      {
+        key: '1',
+        recordName: 'dnsmanager.live',
+        recordType: 'NS',
+        routingPolicy: '',
+        differentiator: '',
+        alias: 'No',
+        valueOrRouteTrafficTo: [
+          'ns-1403.awsdns-47.org.',
+          'ns-826.awsdns-39.net.',
+          'ns-1990.awsdns-56.co.uk.',
+          'ns-314.awsdns-39.com.,'
+        ],
+        ttlInSeconds: 172800,
+        healthCheckId: '',
+        evaluateTargetHealth: '',
+        recordId: '',
+        editRecord: <Button type='link' onClick={handleEditRecord}><EditOutlined /></Button>, 
+        deleteRecord: <Button type='link' onClick={handleDeleteRecord}><DeleteRowOutlined /></Button>, 
+    },
+  ];
 
     const filteredData = data.filter(record =>
         record.recordName.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -212,6 +256,16 @@ const ViewRecordTable: React.FC = () => {
           key: 'recordId',
           ...getColumnSearchProps('recordId'),
         },
+        {
+          title: 'Edit',
+          dataIndex: 'editRecord',
+          key: 'editRecord',
+        },
+        {
+          title: 'Delete',
+          dataIndex: 'deleteRecord',
+          key: 'deleteRecord',
+        }
     ]; 
 
     return (
@@ -223,7 +277,9 @@ const ViewRecordTable: React.FC = () => {
             </GlobalSearchOfTable>
             <DomainChart />
           </>
-        ) : (
+        ) : isDeleteButtonClicked === true ? <DeleteDNSRecordModal isDeleteButtonClicked = {isDeleteButtonClicked} onCancel = {handleDeleteModalCancel}/> : 
+            isEditButtonClicked === true ? <EditDNSRecordModal isEditButtonClicked = {isEditButtonClicked} onCancel = {handleEditModalCancel} /> : 
+        (
           <>
             <GlobalSearchOfTable>
             <ViewChartButton onClick={() => handleViewChart(!viewChart)}>View Chart</ViewChartButton>

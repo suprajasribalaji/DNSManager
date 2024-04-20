@@ -5,6 +5,8 @@ import { styled } from 'styled-components';
 import ViewRecordTable from '../components/record/viewRecordTable.tsx';
 import ViewDomainTable from '../components/domain/viewDomainTable.tsx';
 import AddDNSRecordModal from '../components/modals/addDNSRecordModal.tsx';
+import DeleteDNSRecordModal from '../components/modals/deleteDNSRecordModal.tsx';
+import EditDNSRecordModal from '../components/modals/editDNSRecordModal.tsx';
 
 const viewItems: MenuProps['items'] = [
     {
@@ -36,6 +38,7 @@ const Dashboard: React.FC = () => {
     const [selectedViewMenu, setSelectedViewMenu] = useState<string>('');
     const [selectedUploadMenu, setSelectedUploadMenu] = useState<string>('');
     const [selectedDNSRecordMenu, setSelectedDNSRecordMenu] = useState<string>('');
+    const [isDNSRecordModalOpen, setIsDNSRecordModalOpen] = useState<boolean>(false);
 
     const handleViewDropdownItemClick: MenuProps['onClick'] = ({ key }) => {
         if(key === '1') {
@@ -56,10 +59,13 @@ const Dashboard: React.FC = () => {
     const handleDNSRecordDropdownItemClick: MenuProps['onClick'] = ({ key }) => {
         if(key === '0') {
             setSelectedDNSRecordMenu('Add');
+            setIsDNSRecordModalOpen(true);
         } else if (key === '1') {
             setSelectedDNSRecordMenu('Delete');
+            setIsDNSRecordModalOpen(true);
         } else {
             setSelectedDNSRecordMenu('Edit');
+            setIsDNSRecordModalOpen(true);
         }
     };
 
@@ -100,23 +106,25 @@ const Dashboard: React.FC = () => {
                                     <Button onClick={(e) => e.preventDefault()}>DNS Record<CaretDownOutlined /></Button>
                                 </Space>
                             </Dropdown>
-                            {/* Modal */}
                         </NavBarDropdownButtonAndModal>
                     </Space>
                 </NavBarItems>
             </DashboardNavBar>            
             <ViewTableOfDomainOrRecord>
-                <ViewTableOfDomainOrRecord>
-                    { selectedViewMenu === 'Record' ? 
-                        <ViewRecordTable /> : selectedViewMenu === 'Domain' ? 
-                            <ViewDomainTable /> : (
+                { 
+                    selectedViewMenu === 'Record' ? <ViewRecordTable /> : 
+                    selectedViewMenu === 'Domain' ? <ViewDomainTable /> : (
+                        <>
+                            {
+                                selectedDNSRecordMenu === 'Add' ? <AddDNSRecordModal isDNSRecordModalOpen = {isDNSRecordModalOpen} /> :
                                 <>
-                                    <span>The DNS Manager handles your DNS service from your Domain registrar via AWS. 
-                                    Explore its top-page features for more.</span>                                
+                                    <span>
+                                        To explore more about this page, check out the top of the page!
+                                    </span>
                                 </>
-                    )}
-                    { selectedUploadMenu === 'Record' }
-                </ViewTableOfDomainOrRecord>
+                            }                              
+                        </>
+                )}                
             </ViewTableOfDomainOrRecord>
         </DashboardComponent>
     );
