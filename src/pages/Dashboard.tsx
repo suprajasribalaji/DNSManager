@@ -39,7 +39,6 @@ const Dashboard: React.FC = () => {
             <DashboardNavBar>
                 <NavBarHeading>
                     <h3>DNS MANAGER</h3>
-                    <Link to="/signup">Sign Up</Link>
                 </NavBarHeading>
                 <NavBarItems>
                     <Space>
