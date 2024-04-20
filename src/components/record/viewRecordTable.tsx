@@ -1,310 +1,174 @@
-import React, { useRef, useState } from 'react';
-import { SearchOutlined, EditOutlined, DeleteRowOutlined } from '@ant-design/icons';
-import { Button, Input, InputRef, Space, Table } from 'antd';
-import type { ColumnsType, ColumnType } from 'antd/es/table';
-import Highlighter from 'react-highlight-words';
+import React, { useEffect, useState } from 'react';
+import { Button, Input, Table } from 'antd';
 import styled from 'styled-components';
-import DomainChart from '../charts/domainChart.tsx';
-import DeleteDNSRecordModal from '../modals/deleteDNSRecordModal.tsx';
-import EditDNSRecordModal from '../modals/editDNSRecordModal.tsx';
-
-type DataIndex = keyof DataType;
+import AWS from 'aws-sdk';
+import { ColumnsType } from 'antd/es/table/interface';
 
 interface DataType {
-    key: React.Key;
-    recordName: string;
-    recordType: string;
-    routingPolicy: string;
-    differentiator: string;
-    alias: string;
-    valueOrRouteTrafficTo: string[];
-    ttlInSeconds: number;
-    healthCheckId: string;
-    evaluateTargetHealth: string;
-    recordId: string;
-    editRecord: JSX.Element;
-    deleteRecord: JSX.Element;
+  key: string;
+  recordName: string;
+  recordType: string;
+  routingPolicy?: string | undefined;
+  alias: string;
+  valueOrRouteTrafficTo: string[];
+  ttlInSeconds: number;
+  healthCheckId?: string | undefined;
+  evaluateTargetHealth?: string | undefined;
+  recordId?: string | undefined;
 }
 
 const ViewRecordTable: React.FC = () => {
-    const [searchText, setSearchText] = useState<string>('');
-    const [searchTextOfColumn, setSearchTextOfColumn] = useState<string>('');
-    const [searchedColumn, setSearchedColumn] = useState<string>('');
-    const searchInputOfColumn = useRef<InputRef>(null);
-    const [viewChart, setViewChart] = useState<boolean>(false);
-    const [isEditButtonClicked, setIsEditButtonClicked] = useState<boolean>(false);
-    const [isDeleteButtonClicked, setIsDeleteButtonClicked] = useState<boolean>(false);
+  const [searchText, setSearchText] = useState<string>('');
+  const [dnsRecords, setDnsRecords] = useState<DataType[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const fetchDNSRecords = async () => {
+      try {
+        AWS.config.update({
+          accessKeyId: 'AKIASRL7FVZFLJTGFBYT',
+          secretAccessKey: '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',
+          region: 'us-east-1'
+      });
+      
+        const route53 = new AWS.Route53();
+      
+        const domain = 'dnsmanager.live'; 
+        const params = {
+          HostedZoneId: 'Z03475321WH1NH01XRPEQ',
+          StartRecordName: domain,
+        };
+      
+        const response = await route53.listResourceRecordSets(params).promise();
+      
+        const records = response.ResourceRecordSets.map((record: any, index: number) => ({
+          key: index.toString(),
+          recordName: record.Name,
+          recordType: record.Type,
+          routingPolicy: record.RoutingPolicy || 'Simple',
+          alias: record.AliasTarget ? 'Yes' : 'No',
+          valueOrRouteTrafficTo: record.ResourceRecords ? record.ResourceRecords.map((rec: any) => rec.Value) : [],
+          ttlInSeconds: record.TTL || 0,
+          healthCheckId: record.HealthCheckId || '-',
+          evaluateTargetHealth: record.EvaluateTargetHealth || '-',
+          recordId: record.ResourceRecordSetId || '-'
+        }));
+      
+        setDnsRecords(records);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error getting DNS records:', error.message);
+        setLoading(false);
+      }
+    };
     
-    const handleDeleteModalCancel = () => {
-      setIsDeleteButtonClicked(false);
-    };
+    fetchDNSRecords();
+  }, []);
 
-    const handleEditModalCancel = () => {
-      setIsEditButtonClicked(false);
-    };
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchText(e.target.value);
+  };
 
-    const handleViewChart = (value: boolean) => {
-      setViewChart(value);
-    }
-    const handleSearch = (
-        selectedKeys: string[],
-        confirm: () => void,
-        dataIndex: DataIndex,
-    ) => {
-        confirm();
-        setSearchTextOfColumn(selectedKeys[0]);
-        setSearchedColumn(dataIndex.toString());
-    };
-    
-    const handleReset = (clearFilters: () => void) => {
-        clearFilters();
-        setSearchTextOfColumn('');
-    };
+  const filteredData = dnsRecords.filter(record =>
+    record.recordName.toLowerCase().includes(searchText.toLowerCase()) ||
+    record.recordType.toLowerCase().includes(searchText.toLowerCase()) ||
+    record.routingPolicy?.toLowerCase().includes(searchText.toLowerCase()) ||
+    record.alias.toLowerCase().includes(searchText.toLowerCase()) ||
+    record.valueOrRouteTrafficTo.join(',').toLowerCase().includes(searchText.toLowerCase()) ||
+    record.ttlInSeconds.toString().toLowerCase().includes(searchText.toLowerCase()) ||
+    record.healthCheckId?.toLowerCase().includes(searchText.toLowerCase()) ||
+    record.evaluateTargetHealth?.toLowerCase().includes(searchText.toLowerCase()) ||
+    record.recordId?.toLowerCase().includes(searchText.toLowerCase()) 
+  );
 
-    const handleDeleteRecord = () => {
-      setIsDeleteButtonClicked(true);
-    }
-
-    const handleEditRecord = () => {
-      setIsEditButtonClicked(true);
-    }
-
-    const data: DataType[] = [
-      {
-          key: '0',
-          recordName: 'dnsmanager.live',
-          recordType: 'PTR',
-          routingPolicy: 'Failover',
-          differentiator: 'Primary',
-          alias: 'No',
-          valueOrRouteTrafficTo: [
-            'ns-1403.awsdns-47.org.',
-            'ns-826.awsdns-39.net.',
-            'ns-1990.awsdns-56.co.uk.',
-            'ns-314.awsdns-39.com.,'
-          ],
-          ttlInSeconds: 300,
-          healthCheckId: '21e321af-7c18-446d-a839-13449827a29c',
-          evaluateTargetHealth: '',
-          recordId: 'ptr-id-1',
-          editRecord: <Button type='link' onClick={handleEditRecord}><EditOutlined /></Button>,
-          deleteRecord: <Button type='link' onClick={handleDeleteRecord}><DeleteRowOutlined /></Button>, 
-      },
-      {
-        key: '1',
-        recordName: 'dnsmanager.live',
-        recordType: 'NS',
-        routingPolicy: '',
-        differentiator: '',
-        alias: 'No',
-        valueOrRouteTrafficTo: [
-          'ns-1403.awsdns-47.org.',
-          'ns-826.awsdns-39.net.',
-          'ns-1990.awsdns-56.co.uk.',
-          'ns-314.awsdns-39.com.,'
-        ],
-        ttlInSeconds: 172800,
-        healthCheckId: '',
-        evaluateTargetHealth: '',
-        recordId: '',
-        editRecord: <Button type='link' onClick={handleEditRecord}><EditOutlined /></Button>, 
-        deleteRecord: <Button type='link' onClick={handleDeleteRecord}><DeleteRowOutlined /></Button>, 
+  const columns: ColumnsType<DataType> = [
+    {
+      title: 'Record Name',
+      dataIndex: 'recordName',
+      key: 'recordName'
     },
+    {
+      title: 'Record Type',
+      dataIndex: 'recordType',
+      key: 'recordType'
+    },
+    {
+      title: 'Routing Policy',
+      dataIndex: 'routingPolicy',
+      key: 'routingPolicy'
+    },
+    {
+      title: 'Alias',
+      dataIndex: 'alias',
+      key: 'alias'
+    },
+    {
+      title: 'Value/Route Traffic To',
+      dataIndex: 'valueOrRouteTrafficTo',
+      key: 'valueOrRouteTrafficTo',
+      render: (values: string[]) => (
+        <ul>
+          {values.map((value, index) => (
+            <li key={index}>{value}</li>
+          ))}
+        </ul>
+      )
+    },
+    {
+      title: 'TTL (in seconds)',
+      dataIndex: 'ttlInSeconds',
+      key: 'ttlInSeconds'
+    },
+    {
+      title: 'Health Check ID',
+      dataIndex: 'healthCheckId',
+      key: 'healthCheckId'
+    },
+    {
+      title: 'Evaluate Target Health',
+      dataIndex: 'evaluateTargetHealth',
+      key: 'evaluateTargetHealth'
+    },
+    {
+      title: 'Record ID',
+      dataIndex: 'recordId',
+      key: 'recordId'
+    }
   ];
 
-    const filteredData = data.filter(record =>
-        record.recordName.toLowerCase().includes(searchText.toLowerCase()) ||
-        record.recordType.toLowerCase().includes(searchText.toLowerCase()) ||
-        record.routingPolicy.toLowerCase().includes(searchText.toLowerCase()) ||
-        record.differentiator.toLowerCase().includes(searchText.toLowerCase()) ||
-        record.alias.toLowerCase().includes(searchText.toLowerCase()) ||
-        record.valueOrRouteTrafficTo.join(',').toLowerCase().includes(searchText.toLowerCase()) ||
-        record.ttlInSeconds.toString().toLowerCase().includes(searchText.toLowerCase()) ||
-        record.evaluateTargetHealth.toLowerCase().includes(searchText.toLowerCase()) ||
-        record.healthCheckId.toLowerCase().includes(searchText.toLowerCase()) ||
-        record.recordId.toLowerCase().includes(searchText.toLowerCase())
-    );
-    
-    const getColumnSearchProps = (dataIndex: DataIndex): ColumnType<DataType> => ({
-      filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters, close }) => (
-        <div style={{ padding: 8 }}>
-          <Input
-            ref={searchInputOfColumn}
-            placeholder={`Search ${dataIndex}`}
-            value={selectedKeys[0] || ''}
-            onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-            onPressEnter={() => handleSearch(selectedKeys as string[], confirm, dataIndex)}
-            style={{ marginBottom: 8, display: 'block' }}
-          />
-          <Space>
-            <Button
-              type="primary"
-              onClick={() => handleSearch(selectedKeys as string[], confirm, dataIndex)}
-              icon={<SearchOutlined />}
-              size="small"
-              style={{ width: 90 }}
-            >
-              Search
-            </Button>
-            <Button
-                onClick={() => clearFilters && handleReset(clearFilters)}
-                size="small"
-                style={{ width: 90 }}
-              >
-                Reset
-              </Button>
-              <Button
-                type="link"
-                size="small"
-                onClick={() => {
-                  confirm({ closeDropdown: false });
-                  setSearchTextOfColumn((selectedKeys as string[])[0]);
-                  setSearchedColumn(dataIndex);
-                }}
-              >
-                Filter
-              </Button>
-              <Button
-                type="link"
-                size="small"
-                onClick={() => {
-                  close();
-                }}
-              >
-                close
-              </Button>
-          </Space>
-        </div>
-      ),
-      filterIcon: (filtered: boolean) => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />,
-      onFilterDropdownVisibleChange: (visible: boolean) => {
-        if (visible) {
-          setTimeout(() => searchInputOfColumn.current?.select(), 100);
-        }
-      },
-      render: (text: string) =>
-        searchedColumn === dataIndex ? (
-          <Highlighter
-            highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
-            searchWords={[searchTextOfColumn]}
-            autoEscape
-            textToHighlight={text}
+  return (
+    <ViewTableOfRecord>
+      <GlobalSearchOfTable>
+        <ViewChartButton >View Chart</ViewChartButton>
+        <Input
+          placeholder="Search"
+          allowClear
+          onChange={handleSearchChange}
+          style={{ width: '12%', marginBottom: '1%', justifyContent: 'flex-end' }}
+        />
+      </GlobalSearchOfTable>
+      <ViewContentOfTable>
+        {loading ? (
+          <LoadingText>Loading...</LoadingText>
+        ) : dnsRecords.length > 0 ? (
+          <ContentOfTable
+            columns={columns}
+            dataSource={filteredData}
+            pagination={false}
+            onChange={() => {}} 
           />
         ) : (
-          text
-        ),
-    });
-    
-    const columns: ColumnsType<DataType> = [
-        {
-          title: 'Name',
-          dataIndex: 'recordName',
-          key: 'recordName',
-          ...getColumnSearchProps('recordName'),
-        },
-        {
-          title: 'Record Type',
-          dataIndex: 'recordType',
-          key: 'recordType',
-          ...getColumnSearchProps('recordType'),
-        },
-        {
-          title: 'Routing Policy',
-          dataIndex: 'routingPolicy',
-          key: 'routingPolicy',
-          ...getColumnSearchProps('routingPolicy'),
-        },
-        {
-          title: 'Differentiator',
-          dataIndex: 'differentiator',
-          key: 'differentiator',
-          ...getColumnSearchProps('differentiator'),
-        },
-        {
-          title: 'Alias',
-          dataIndex: 'alias',
-          key: 'alias',
-          ...getColumnSearchProps('alias'),
-        },
-        {
-          title: 'Value/Route Traffic To',
-          dataIndex: 'valueOrRouteTrafficTo',
-          key: 'valueOrRouteTrafficTo',
-          ...getColumnSearchProps('valueOrRouteTrafficTo'),
-        },
-        {
-          title: 'TTL (in seconds)',
-          dataIndex: 'ttlInSeconds',
-          key: 'ttlInSeconds',
-          ...getColumnSearchProps('ttlInSeconds'),
-        },
-        {
-          title: 'Health Check ID',
-          dataIndex: 'healthCheckId',
-          key: 'healthCheckId',
-          ...getColumnSearchProps('healthCheckId'),
-        },
-        {
-          title: 'Evaluate Target Health',
-          dataIndex: 'evaluateTargetHealth',
-          key: 'evaluateTargetHealth',
-          ...getColumnSearchProps('evaluateTargetHealth'),
-        },
-        {
-          title: 'Record ID',
-          dataIndex: 'recordId',
-          key: 'recordId',
-          ...getColumnSearchProps('recordId'),
-        },
-        {
-          title: 'Edit',
-          dataIndex: 'editRecord',
-          key: 'editRecord',
-        },
-        {
-          title: 'Delete',
-          dataIndex: 'deleteRecord',
-          key: 'deleteRecord',
-        }
-    ]; 
-
-    return (
-      <ViewTableOfRecord>
-        {viewChart === true ? (
-          <>
-            <GlobalSearchOfTable>
-              <ViewChartButton onClick={() => handleViewChart(!viewChart)}>View Chart</ViewChartButton>
-            </GlobalSearchOfTable>
-            <DomainChart />
-          </>
-        ) : isDeleteButtonClicked === true ? <DeleteDNSRecordModal isDeleteButtonClicked = {isDeleteButtonClicked} onCancel = {handleDeleteModalCancel}/> : 
-            isEditButtonClicked === true ? <EditDNSRecordModal isEditButtonClicked = {isEditButtonClicked} onCancel = {handleEditModalCancel} /> : 
-        (
-          <>
-            <GlobalSearchOfTable>
-            <ViewChartButton onClick={() => handleViewChart(!viewChart)}>View Chart</ViewChartButton>
-              <GlobalSearchOfTableInputField
-                  placeholder="Search"
-                  allowClear
-                  onChange={(e) => setSearchText(e.target.value)}
-              />
-            </GlobalSearchOfTable>
-            <ViewContentOfTable>
-                <ContentOfTable
-                    columns={columns}
-                    dataSource={filteredData}
-                />
-            </ViewContentOfTable>
-          </>
+          <LoadingText>No DNS records found</LoadingText>
         )}
-      </ViewTableOfRecord>
-    );
+      </ViewContentOfTable>
+    </ViewTableOfRecord>
+  );
 };
 
 export default ViewRecordTable;
 
 const ViewTableOfRecord = styled.div`
-    margin-top: 2%;
+  margin-top: 2%;
 `;
 
 const ViewChartButton = styled(Button)`
@@ -312,17 +176,18 @@ const ViewChartButton = styled(Button)`
 `;
 
 const GlobalSearchOfTable = styled.div`
-    display: flex;
-`;
-
-const GlobalSearchOfTableInputField = styled(Input)`
-    width: 12%;
-    margin-bottom: 1%;
-    justify-content: flex-end;
+  display: flex;
 `;
 
 const ViewContentOfTable = styled.div`
-    margin: 0.4%;
+  margin: 0.4%;
 `;
 
 const ContentOfTable = styled(Table)<{ columns: ColumnsType<DataType>; dataSource: DataType[] }>``;
+
+const LoadingText = styled.div`
+  font-size: 18px;
+  font-weight: bold;
+  text-align: center;
+  padding: 20px;
+`;
