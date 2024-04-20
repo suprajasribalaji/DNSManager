@@ -3,9 +3,6 @@ import { SearchOutlined, EditOutlined, DeleteRowOutlined } from '@ant-design/ico
 import { Button, Input, InputRef, Space, Table } from 'antd';
 import Highlighter from 'react-highlight-words';
 import styled from 'styled-components';
-import DomainChart from '../charts/domainChart.tsx';
-import DeleteDNSRecordModal from '../modals/deleteDNSRecordModal.tsx';
-import EditDNSRecordModal from '../modals/editDNSRecordModal.tsx';
 import AWS from 'aws-sdk';
 import { ColumnType, ColumnsType } from 'antd/es/table/interface';
 import RecordChart from '../charts/recordChart.tsx';
@@ -32,8 +29,6 @@ const ViewRecordTable: React.FC = () => {
   const [searchedColumn, setSearchedColumn] = useState<string>('');
   const searchInputOfColumn = useRef<InputRef>(null);
   const [viewChart, setViewChart] = useState<boolean>(false);
-  const [isEditButtonClicked, setIsEditButtonClicked] = useState<boolean>(false);
-  const [isDeleteButtonClicked, setIsDeleteButtonClicked] = useState<boolean>(false);
   const [dnsRecords, setDnsRecords] = useState<DataType[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -86,13 +81,6 @@ const ViewRecordTable: React.FC = () => {
     };
   }, []);
 
-  const handleDeleteRecord = () => {
-    setIsDeleteButtonClicked(true);
-  };
-
-  const handleEditRecord = () => {
-    setIsEditButtonClicked(true);
-  };
 
   const handleReset = (clearFilters: () => void) => {
     clearFilters();
@@ -218,18 +206,6 @@ const ViewRecordTable: React.FC = () => {
       key: 'recordId',
       ...getColumnSearchProps('recordId'),
     },
-    {
-      title: 'Edit',
-      dataIndex: 'editRecord',
-      key: 'editRecord',
-      render: () => <Button type="link" onClick={handleEditRecord}><EditOutlined /></Button>,
-    },
-    {
-      title: 'Delete',
-      dataIndex: 'deleteRecord',
-      key: 'deleteRecord',
-      render: () => <Button type="link" onClick={handleDeleteRecord}><DeleteRowOutlined /></Button>,
-    },
   ];
 
   const handleViewChart = () => {
@@ -255,11 +231,7 @@ const ViewRecordTable: React.FC = () => {
           <RecordChart chartData = {chartData} />
           <Button onClick={() => setViewChart(false)}>Back to Table</Button>
         </>
-      )  : isDeleteButtonClicked ? (
-        <DeleteDNSRecordModal isDeleteButtonClicked={isDeleteButtonClicked} onCancel={() => setIsDeleteButtonClicked(false)} />
-      ) : isEditButtonClicked ? (
-        <EditDNSRecordModal isEditButtonClicked={isEditButtonClicked} onCancel={() => setIsEditButtonClicked(false)} />
-      ) : (
+      )  :  (
         <>
           <GlobalSearchOfTable>
             <ViewChartButton onClick={handleViewChart}>View Chart</ViewChartButton>
@@ -277,7 +249,6 @@ const ViewRecordTable: React.FC = () => {
               <ContentOfTable
                 columns={columns}
                 dataSource={filteredData}
-                pagination={false}
                 onChange={() => {}} // Dummy function to prevent warning
               />
             ) : (

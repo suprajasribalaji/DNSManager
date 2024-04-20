@@ -32,7 +32,6 @@ const Dashboard: React.FC = () => {
 
     const handleAddDNSRecordModalCancel = () => {
         setIsDNSRecordModalOpen(false);
-        // After closing the modal, set the selected menu to 'record'
         setSelectedViewMenu('record');
     }
 
