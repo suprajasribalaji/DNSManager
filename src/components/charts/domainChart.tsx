@@ -1,46 +1,26 @@
 import React from 'react';
-import { Tooltip } from 'antd';
-import { Bar, BarChart, CartesianGrid, Legend, XAxis, YAxis } from 'recharts';
-import styled from 'styled-components';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
-const DomainChart:React.FC = () => {
-    const domainData = [
-        { name: 'Domain A', count: 20 },
-        { name: 'Domain B', count: 30 },
-        { name: 'Domain C', count: 15 },
-        { name: 'Domain D', count: 25 },
-    ];
+interface Props {
+  chartData: { type: string; value: number }[];
+}
 
-    return (
-        <DomainChartComponent>
-            <DomainChartHeading>
-                <h2>DOMAIN DISTRIBUTION</h2>
-            </DomainChartHeading>
-            <DomainBarChart>
-                <BarChart width={400} height={300} data={domainData}>
-                    <CartesianGrid />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="count" fill="#8884d8" />
-                </BarChart>
-            </DomainBarChart>
-        </DomainChartComponent>
-    );
+const DomainChart: React.FC<Props> = ({ chartData }) => {
+  return (
+    <LineChart
+      width={800}
+      height={400}
+      data={chartData}
+      margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+    >
+      <CartesianGrid strokeDasharray="3 3" />
+      <XAxis dataKey="type" />
+      <YAxis />
+      <Tooltip />
+      <Legend />
+      <Line type="monotone" dataKey="value" stroke="#8884d8" activeDot={{ r: 8 }} />
+    </LineChart>
+  );
 };
- 
+
 export default DomainChart;
-
-const DomainChartComponent = styled.div`
-    margin-top: 3%;
-    margin-left: 1%;
-`;
-
-const DomainChartHeading = styled.div`
-    font-size: 80%;
-`;
-
-const DomainBarChart = styled.div`
-    margin-top: 2%;
-`;

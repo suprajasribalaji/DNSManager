@@ -8,14 +8,13 @@ import { styled } from 'styled-components';
 import Highlighter from 'react-highlight-words';
 import DomainChart from '../charts/domainChart.tsx';
 
-
 type DataIndex = keyof DataType;
 
 interface DataType {
     key: React.Key;
     domainName: string;
     privacyStatus: boolean;
-    expirationDate: string;
+    expirationDate: number; // Changed to number format
     autoRenew: boolean;
     transferLock: boolean;
 }
@@ -24,7 +23,7 @@ const data: DataType[] = [
     {
       key: '1',
       domainName: 'dnsmanager.live',
-      expirationDate: 'November 1, 2025',
+      expirationDate: new Date('2025-11-01').getTime(), // Converted to number format
       privacyStatus: true,
       autoRenew: true,
       transferLock: false,
@@ -32,7 +31,7 @@ const data: DataType[] = [
     {
       key: '2',
       domainName: 'dnsmanager.com',
-      expirationDate: 'April 4, 2024',
+      expirationDate: new Date('2024-04-04').getTime(), // Converted to number format
       privacyStatus: true,
       autoRenew: false,
       transferLock: true,
@@ -40,7 +39,7 @@ const data: DataType[] = [
     {
       key: '3',
       domainName: 'dnsmanager.world',
-      expirationDate: 'August 27, 2027',
+      expirationDate: new Date('2027-08-27').getTime(), // Converted to number format
       privacyStatus: true,
       autoRenew: false,
       transferLock: true,
@@ -48,7 +47,7 @@ const data: DataType[] = [
     {
       key: '4',
       domainName: 'mydomain.com',
-      expirationDate: 'July 9, 2025',
+      expirationDate: new Date('2025-07-09').getTime(), // Converted to number format
       privacyStatus: true,
       autoRenew: true,
       transferLock: false,
@@ -61,10 +60,7 @@ const ViewDomainTable: React.FC = () => {
     const [searchedColumn, setSearchedColumn] = useState<string>('');
     const searchInputOfColumn = useRef<InputRef>(null);
     const [viewChart, setViewChart] = useState<boolean>(false);
-
-    const handleViewChart = (value: boolean) => {
-      setViewChart(value);
-    }
+    const [chartData, setChartData] = useState<any[]>([]);
 
     const handleSearch = (
       selectedKeys: string[],
@@ -83,11 +79,16 @@ const ViewDomainTable: React.FC = () => {
 
     const filteredData = data.filter(record =>
         record.domainName.toLowerCase().includes(searchText.toLowerCase()) ||
-        record.expirationDate.toLowerCase().includes(searchText.toLowerCase()) ||
         record.autoRenew.toString().toLowerCase().includes(searchText.toLowerCase()) ||
         record.transferLock.toString().toLowerCase().includes(searchText.toLowerCase()) ||
         record.privacyStatus.toString().toLowerCase().includes(searchText.toLowerCase())
     );
+
+    const monthsUntilExpiration = (expirationDate: number) => {
+        const now = new Date();
+        const expiryDate = new Date(expirationDate);
+        return (expiryDate.getFullYear() - now.getFullYear()) * 12 + (expiryDate.getMonth() - now.getMonth());
+    };
     
     const getColumnSearchProps = (dataIndex: DataIndex): ColumnType<DataType> => ({
         filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters, close }) => (
@@ -165,7 +166,11 @@ const ViewDomainTable: React.FC = () => {
             dataIndex === 'autoRenew' || dataIndex === 'transferLock' || dataIndex === 'privacyStatus' ? (
               <span>{record[dataIndex] ? 'Enabled' : 'Disabled'}</span>
             ) : (
-              text
+              dataIndex === 'expirationDate' ? (
+                <span>{monthsUntilExpiration(record[dataIndex])}</span> // Displaying months until expiration
+              ) : (
+                text
+              )
             )
         ),
         
@@ -181,12 +186,12 @@ const ViewDomainTable: React.FC = () => {
           sortDirections: ['descend', 'ascend'],
         },
         {
-          title: 'Expiration Date',
-          dataIndex: 'expirationDate',
-          key: 'expirationDate',
+          title: 'Months Until Expiration',
+          dataIndex: 'expirationDate', // Changed dataIndex
+          key: 'monthsUntilExpiration', // Changed key
           width: '20%',
-          ...getColumnSearchProps('expirationDate'),
-          sorter: (a, b) => a.expirationDate.localeCompare(b.expirationDate),
+          render: (text, record) => monthsUntilExpiration(record.expirationDate), // Rendering months
+          sorter: (a, b) => monthsUntilExpiration(a.expirationDate) - monthsUntilExpiration(b.expirationDate), // Change sorting function
           sortDirections: ['descend', 'ascend'],
         },
         {
@@ -194,6 +199,7 @@ const ViewDomainTable: React.FC = () => {
           dataIndex: 'privacyStatus',
           key: 'privacyStatus',
           ...getColumnSearchProps('privacyStatus'),
+          sorter: (a, b) => a.privacyStatus === b.privacyStatus ? 0 : (a.privacyStatus ? 1 : -1), 
           sortDirections: ['descend', 'ascend'],
         },
         {
@@ -201,28 +207,41 @@ const ViewDomainTable: React.FC = () => {
           dataIndex: 'autoRenew',
           key: 'autoRenew',
           ...getColumnSearchProps('autoRenew'),
+          sorter: (a, b) => a.autoRenew === b.autoRenew ? 0 : (a.autoRenew ? 1 : -1),
+          sortDirections: ['descend', 'ascend'],
         },
         {
           title: 'Transfer Lock',
           dataIndex: 'transferLock',
           key: 'transferLock',
           ...getColumnSearchProps('transferLock'),
+          sorter: (a, b) => a.transferLock === b.transferLock ? 0 : (a.transferLock ? 1 : -1),
+          sortDirections: ['descend', 'ascend'],
         },
     ]; 
 
+    const handleViewChart = () => {
+      setViewChart(true);
+  
+      const dataForChart = data.map(domain => ({
+        type: domain.domainName,
+        value: monthsUntilExpiration(domain.expirationDate), // Changed to months until expiration
+      }));
+      
+      setChartData(dataForChart);
+    };
+    
     return (
       <ViewTableOfDomain>
         {viewChart === true ? (
           <>
-            <GlobalSearchOfTable>
-              <ViewChartButton onClick={() => handleViewChart(!viewChart)}>View Chart</ViewChartButton>
-            </GlobalSearchOfTable>
-            <DomainChart />
-          </>
+          <DomainChart chartData = {chartData} />
+          <Button onClick={() => setViewChart(false)}>Back to Table</Button>
+        </>
         ) : (
           <>
             <GlobalSearchOfTable>
-            <ViewChartButton onClick={() => handleViewChart(!viewChart)}>View Chart</ViewChartButton>
+              <ViewChartButton onClick={handleViewChart}>View Chart</ViewChartButton>
               <GlobalSearchOfTableInputField
                   placeholder="Search"
                   allowClear
@@ -238,12 +257,10 @@ const ViewDomainTable: React.FC = () => {
           </>
         )}
       </ViewTableOfDomain>
-     
     );
 };
 
 export default ViewDomainTable;
-
 
 const ViewTableOfDomain = styled.div`
     margin-top: 2%;

@@ -310,6 +310,7 @@ const ViewContentOfTable = styled.div`
 
 const ContentOfTable = styled(Table)<{ columns: ColumnsType<DataType>; dataSource: DataType[] }>``;
 
+
 const LoadingText = styled.div`
   font-size: 18px;
   font-weight: bold;
