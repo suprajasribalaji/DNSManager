@@ -1,25 +1,25 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import { CaretDownOutlined } from '@ant-design/icons';
-import { Button, Dropdown, Modal, Space } from 'antd';
+import { Button, Dropdown, Menu, Space } from 'antd';
 import { styled } from 'styled-components';
 import ViewRecordTable from '../components/record/viewRecordTable.tsx';
 import ViewDomainTable from '../components/domain/viewDomainTable.tsx';
 import AddDNSRecordModal from '../components/modals/addDNSRecordModal.tsx';
+import { Buttons, PageDivisionBackground } from '../components/theme/color.tsx';
 
 const viewItems = [
     {
         label: 'Domain',
-        key: 'domain',
+        key: 'Domain',
     },
     {
         label: 'Record',
-        key: 'record',
+        key: 'Record',
     },
 ];
 
 const Dashboard: React.FC = () => {
-    const [selectedViewMenu, setSelectedViewMenu] = useState<string>('');
+    const [selectedViewMenu, setSelectedViewMenu] = useState<string>('Record');
     const [isDNSRecordModalOpen, setIsDNSRecordModalOpen] = useState<boolean>(false);
 
     const handleViewDropdownItemClick = ({ key }: { key: string }) => {
@@ -32,7 +32,7 @@ const Dashboard: React.FC = () => {
 
     const handleAddDNSRecordModalCancel = () => {
         setIsDNSRecordModalOpen(false);
-        setSelectedViewMenu('record');
+        setSelectedViewMenu('Record');
     }
 
     return (
@@ -45,16 +45,19 @@ const Dashboard: React.FC = () => {
                     <Space>
                         <NavBarDropdownButton>
                             <Dropdown 
-                                menu={{
-                                    items: viewItems,
-                                    onClick: handleViewDropdownItemClick,
-                                }}
+                                overlay={
+                                    <Menu onClick={handleViewDropdownItemClick}>
+                                        {viewItems.map(item => (
+                                            <Menu.Item key={item.key}>{item.label}</Menu.Item>
+                                        ))}
+                                    </Menu>
+                                }
                             >
-                                <Button onClick={(e) => e.preventDefault()}>View<CaretDownOutlined /></Button>
+                                <StyledButton type='link'>{selectedViewMenu}<CaretDownOutlined /></StyledButton>
                             </Dropdown>
                         </NavBarDropdownButton>
                         <NavBarDropdownButtonAndModal>
-                            <Button onClick={handleAddDNSRecordModal}>Add DNS Record</Button>
+                            <StyledButton type='link' onClick={handleAddDNSRecordModal}>Add DNS Record</StyledButton>
                         </NavBarDropdownButtonAndModal>
                     </Space>
                 </NavBarItems>
@@ -64,18 +67,18 @@ const Dashboard: React.FC = () => {
                     isDNSRecordModalOpen ? 
                         (
                             <>
-                                <AddDNSRecordModal 
-                                    isDNSRecordModalOpen={isDNSRecordModalOpen} 
-                                    onCancel={handleAddDNSRecordModalCancel} 
-                                /> 
+                    <AddDNSRecordModal 
+                        isDNSRecordModalOpen={isDNSRecordModalOpen} 
+                        onCancel={handleAddDNSRecordModalCancel} 
+                    />
                                 <ViewRecordTable />
                             </>
                         )
-                    : selectedViewMenu === 'record' ? 
+                    : selectedViewMenu === 'Record' ? 
                         <ViewRecordTable /> 
-                    : selectedViewMenu === 'domain' ? 
+                    : selectedViewMenu === 'Domain' ? 
                         <ViewDomainTable /> 
-                    : <span>To explore more about this page, check out the top of the page!</span>
+                    : <Message>To explore more about this page, check out the top of the page!</Message>
                 }
             </ViewTableOfDomainOrRecord>
         </DashboardComponent>
@@ -85,22 +88,23 @@ const Dashboard: React.FC = () => {
 export default Dashboard;
 
 const DashboardComponent = styled.div`
-    height: 100vh;
-    width: 100%;
+    height: 97.6vh;
+    display: flex;
+    flex-direction: column;
 `;
 
 const DashboardNavBar = styled.div`
     display: flex;
+    background-color: ${PageDivisionBackground.navbarBg};
+    padding: 10px;
 `;
 
 const NavBarHeading = styled.div`
-    margin-left: 1%;
     margin-right: auto;
 `;
 
 const NavBarItems = styled.div`
     display: flex;
-    margin-right: 0.8%;
 `;
 
 const NavBarDropdownButton = styled.div``;
@@ -108,5 +112,24 @@ const NavBarDropdownButton = styled.div``;
 const NavBarDropdownButtonAndModal = styled.div``;
 
 const ViewTableOfDomainOrRecord = styled.div`
-    margin-top: 2%;
+    flex: 1;
+    padding-top: 1%;
+    padding-left: 2%;
+    padding-right: 2%;
+    padding-bottom: 1%;
+    background-color: ${PageDivisionBackground.division};
+`;
+
+const StyledButton = styled(Button)`
+    background-color: ${Buttons.backgroundColor};
+    color: ${Buttons.text};
+    border: none;
+    &&&:hover,
+    &&&:focus {
+        color: ${Buttons.hover};
+    }
+`;
+
+const Message = styled.span`
+    font-size: 110%;
 `;

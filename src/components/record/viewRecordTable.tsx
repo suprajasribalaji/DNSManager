@@ -6,6 +6,7 @@ import styled from 'styled-components';
 import AWS from 'aws-sdk';
 import { ColumnType, ColumnsType } from 'antd/es/table/interface';
 import RecordChart from '../charts/recordChart.tsx';
+import { Buttons } from '../theme/color.tsx';
 
 type DataIndex = keyof DataType;
 
@@ -225,7 +226,7 @@ const ViewRecordTable: React.FC = () => {
      {viewChart ? (
         <>
           <RecordChart chartData = {chartData} />
-          <Button onClick={() => setViewChart(false)}>Back to Table</Button>
+          <StyledButton onClick={() => setViewChart(false)}>Back to Table</StyledButton>
         </>
       )  :  (
         <>
@@ -263,7 +264,17 @@ const ViewTableOfRecord = styled.div`
   margin-top: 2%;
 `;
 
-const ViewChartButton = styled(Button)`
+const StyledButton = styled(Button)`
+  background-color: ${Buttons.backgroundColor};
+  color: ${Buttons.text};
+  border: none;
+  &&&:hover,
+  &&&:focus {
+      color: ${Buttons.hover};
+  }
+`;
+
+const ViewChartButton = styled(StyledButton)`
   margin-right: auto;
 `;
 

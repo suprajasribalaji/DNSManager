@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Button, Form, Modal, Input, Select, message } from 'antd';
 import AWS from 'aws-sdk'; // Import AWS SDK
+import styled from "styled-components";
+import { Buttons } from "../theme/color.tsx";
 
 const { Option } = Select;
 
@@ -84,9 +86,9 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
           <Button key="back" onClick={handleCancel}>
             Return
           </Button>,
-          <Button key="submit" type="primary" loading={loading} onClick={handleOk}>
+          <StyledButton key="submit" type="primary" loading={loading} onClick={handleOk}>
             Submit
-          </Button>,
+          </StyledButton>,
         ]}
       >
         <Form form={form} layout="vertical">
@@ -131,3 +133,13 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
 };
 
 export default AddDNSRecordModal;
+
+const StyledButton = styled(Button)`
+    background-color: ${Buttons.backgroundColor};
+    color: ${Buttons.text};
+    border: none;
+    &&&:hover,
+    &&&:focus {
+        color: ${Buttons.hover};
+    }
+`;

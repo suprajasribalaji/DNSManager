@@ -7,6 +7,7 @@ import type { InputRef } from 'antd';
 import { styled } from 'styled-components';
 import Highlighter from 'react-highlight-words';
 import DomainChart from '../charts/domainChart.tsx';
+import { Buttons } from '../theme/color.tsx';
 
 type DataIndex = keyof DataType;
 
@@ -229,13 +230,13 @@ const ViewDomainTable: React.FC = () => {
       
       setChartData(dataForChart);
     };
-    
+
     return (
       <ViewTableOfDomain>
         {viewChart === true ? (
           <>
             <DomainChart chartData = {chartData} />
-            <Button onClick={() => setViewChart(false)}>Back to Table</Button>
+            <StyledButton type='link' onClick={() => setViewChart(false)}>Back to Table</StyledButton>
           </>
         ) : (
           <>
@@ -265,7 +266,17 @@ const ViewTableOfDomain = styled.div`
   margin-top: 2%;
 `;
 
-const ViewChartButton = styled(Button)`
+const StyledButton = styled(Button)`
+  background-color: ${Buttons.backgroundColor};
+  color: ${Buttons.text};
+  border: none;
+  &&&:hover,
+  &&&:focus {
+      color: ${Buttons.hover};
+  }
+`;
+
+const ViewChartButton = styled(StyledButton)`
   margin-right: auto;
 `;
 
@@ -283,4 +294,5 @@ const ViewContentOfTable = styled.div`
   margin: 0.4%;
 `;
 
-const ContentOfTable = styled(Table)<{ columns: ColumnsType<DataType>; dataSource: DataType[] }>``;
+const ContentOfTable = styled(Table)<{ columns: ColumnsType<DataType>; dataSource: DataType[] }>`
+`;
