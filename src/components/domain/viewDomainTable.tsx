@@ -1,257 +1,132 @@
-import React, { useRef, useState } from 'react';
-import { SearchOutlined } from '@ant-design/icons';
-import { Button, Input, Space, Table } from 'antd';
-import type { ColumnsType, ColumnType } from 'antd/es/table';
-import type { FilterConfirmProps } from 'antd/es/table/interface';
-import type { InputRef } from 'antd';
+import React, { useEffect,  useState } from 'react';
+import { Button, Input, Table } from 'antd';
+import type { ColumnsType } from 'antd/es/table';
 import { styled } from 'styled-components';
-import Highlighter from 'react-highlight-words';
 import DomainChart from '../charts/domainChart.tsx';
 import { Buttons } from '../theme/color.tsx';
+import AWS from 'aws-sdk';
+import { SearchProps } from 'antd/es/input/Search';
 
 type DataIndex = keyof DataType;
 
+const { Search } = Input;
+
 interface DataType {
-    key: React.Key;
-    domainName: string;
-    privacyStatus: boolean;
-    expirationDate: number; 
-    autoRenew: boolean;
-    transferLock: boolean;
+  key: React.Key;
+  Id: string;
+  Name: string;
+  ResourceRecordSetCount: number;
+  PrivateZone: boolean;
 }
 
-const data: DataType[] = [
-    {
-      key: '1',
-      domainName: 'dnsmanager.live',
-      expirationDate: new Date('2025-11-01').getTime(), 
-      privacyStatus: true,
-      autoRenew: true,
-      transferLock: false,
-    },
-    {
-      key: '2',
-      domainName: 'dnsmanager.com',
-      expirationDate: new Date('2024-04-04').getTime(), 
-      privacyStatus: true,
-      autoRenew: false,
-      transferLock: true,
-    },
-    {
-      key: '3',
-      domainName: 'dnsmanager.world',
-      expirationDate: new Date('2027-08-27').getTime(), 
-      privacyStatus: true,
-      autoRenew: false,
-      transferLock: true,
-    },
-    {
-      key: '4',
-      domainName: 'mydomain.com',
-      expirationDate: new Date('2025-07-09').getTime(), 
-      privacyStatus: true,
-      autoRenew: true,
-      transferLock: false,
-    },
-];
-
 const ViewDomainTable: React.FC = () => {
-    const [searchText, setSearchText] = useState<string>('');
-    const [searchTextOfColumn, setSearchTextOfColumn] = useState<string>('');
-    const [searchedColumn, setSearchedColumn] = useState<string>('');
-    const searchInputOfColumn = useRef<InputRef>(null);
-    const [viewChart, setViewChart] = useState<boolean>(false);
-    const [chartData, setChartData] = useState<any[]>([]);
+  const [searchText, setSearchText] = useState<string>('');
+  const [viewChart, setViewChart] = useState<boolean>(false);
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [hostedZones, setHostedZones] = useState<any[]>([]);
+  const [searchedData, setSearchedData] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
-    const handleSearch = (
-      selectedKeys: string[],
-      confirm: (param?: FilterConfirmProps) => void,
-      dataIndex: DataIndex,
-    ) => {
-      confirm();
-      setSearchTextOfColumn(selectedKeys[0]);
-      setSearchedColumn(dataIndex);
-    };
-    
-    const handleReset = (clearFilters: () => void) => {
-      clearFilters();
-      setSearchTextOfColumn('');
-    };
-
-    const filteredData = data.filter(record =>
-        record.domainName.toLowerCase().includes(searchText.toLowerCase()) ||
-        record.autoRenew.toString().toLowerCase().includes(searchText.toLowerCase()) ||
-        record.transferLock.toString().toLowerCase().includes(searchText.toLowerCase()) ||
-        record.privacyStatus.toString().toLowerCase().includes(searchText.toLowerCase())
-    );
-
-    const monthsUntilExpiration = (expirationDate: number) => {
-        const now = new Date();
-        const expiryDate = new Date(expirationDate);
-        return (expiryDate.getFullYear() - now.getFullYear()) * 12 + (expiryDate.getMonth() - now.getMonth());
-    };
-    
-    const getColumnSearchProps = (dataIndex: DataIndex): ColumnType<DataType> => ({
-        filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters, close }) => (
-          <div style={{ padding: 8 }} onKeyDown={e => e.stopPropagation()}>
-            <Input
-              ref={searchInputOfColumn}
-              placeholder={`Search ${dataIndex}`}
-              value={`${selectedKeys[0] || ''}`}
-              onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-              onPressEnter={() => handleSearch(selectedKeys as string[], confirm, dataIndex)}
-              style={{ marginBottom: 8, display: 'block' }}
-            />
-            <Space>
-              <Button
-                type="primary"
-                onClick={() => handleSearch(selectedKeys as string[], confirm, dataIndex)}
-                icon={<SearchOutlined />}
-                size="small"
-                style={{ width: 90 }}
-              >
-                Search
-              </Button>
-              <Button
-                onClick={() => clearFilters && handleReset(clearFilters)}
-                size="small"
-                style={{ width: 90 }}
-              >
-                Reset
-              </Button>
-              <Button
-                type="link"
-                size="small"
-                onClick={() => {
-                  confirm({ closeDropdown: false });
-                  setSearchTextOfColumn((selectedKeys as string[])[0]);
-                  setSearchedColumn(dataIndex);
-                }}
-              >
-                Filter
-              </Button>
-              <Button
-                type="link"
-                size="small"
-                onClick={() => {
-                  close();
-                }}
-              >
-                close
-              </Button>
-            </Space>
-          </div>
-        ),
-        filterIcon: (filtered: boolean) => (
-          <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
-        ),
-        onFilter: (value, record) =>
-          record[dataIndex]
-            .toString()
-            .toLowerCase()
-            .includes((value as string).toLowerCase()),
-        onFilterDropdownOpenChange: visible => {
-          if (visible) {
-            setTimeout(() => searchInputOfColumn.current?.select(), 100);
-          }
-        },
-        render: (text, record) =>
-          searchedColumn === dataIndex ? (
-            <Highlighter 
-              highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
-              searchWords={[searchTextOfColumn]}
-              autoEscape
-              textToHighlight={text ? text.toString() : ''}
-            />
-          ) : (
-            dataIndex === 'autoRenew' || dataIndex === 'transferLock' || dataIndex === 'privacyStatus' ? (
-              <span>{record[dataIndex] ? 'Enabled' : 'Disabled'}</span>
-            ) : (
-              dataIndex === 'expirationDate' ? (
-                <span>{monthsUntilExpiration(record[dataIndex])}</span> 
-              ) : (
-                text
-              )
-            )
-        ), 
+  useEffect(() => {
+    const route53 = new AWS.Route53({
+      accessKeyId: 'AKIASRL7FVZFLJTGFBYT',
+      secretAccessKey: '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',
+      region: 'us-east-1',
     });
-
-    const columns: ColumnsType<DataType> = [
-        {
-          title: 'Domain Name',
-          dataIndex: 'domainName',
-          key: 'domainName',
-          ...getColumnSearchProps('domainName'),
-          sorter: (a, b) => a.domainName.localeCompare(b.domainName),
-          sortDirections: ['descend', 'ascend'],
-        },
-        {
-          title: 'Months Until Expiration',
-          dataIndex: 'expirationDate',
-          key: 'monthsUntilExpiration',
-          width: '20%',
-          render: (text, record) => monthsUntilExpiration(record.expirationDate), 
-          sorter: (a, b) => monthsUntilExpiration(a.expirationDate) - monthsUntilExpiration(b.expirationDate),
-          sortDirections: ['descend', 'ascend'],
-        },
-        {
-          title: 'Privacy Protection',
-          dataIndex: 'privacyStatus',
-          key: 'privacyStatus',
-          ...getColumnSearchProps('privacyStatus'),
-          sorter: (a, b) => a.privacyStatus === b.privacyStatus ? 0 : (a.privacyStatus ? 1 : -1), 
-          sortDirections: ['descend', 'ascend'],
-        },
-        {
-          title: 'Auto Renew',
-          dataIndex: 'autoRenew',
-          key: 'autoRenew',
-          ...getColumnSearchProps('autoRenew'),
-          sorter: (a, b) => a.autoRenew === b.autoRenew ? 0 : (a.autoRenew ? 1 : -1),
-          sortDirections: ['descend', 'ascend'],
-        },
-        {
-          title: 'Transfer Lock',
-          dataIndex: 'transferLock',
-          key: 'transferLock',
-          ...getColumnSearchProps('transferLock'),
-          sorter: (a, b) => a.transferLock === b.transferLock ? 0 : (a.transferLock ? 1 : -1),
-          sortDirections: ['descend', 'ascend'],
-        },
-    ]; 
-
-    const handleViewChart = () => {
-      setViewChart(true);
+    fetchHostedZones();
+    async function fetchHostedZones() {
+      try {
+        const data = await route53.listHostedZones().promise();
+        if (data.HostedZones) {
+          setHostedZones(data.HostedZones);
+          console.log('Fetched successfully!');
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error fetching hosted zones:', error);
+        setLoading(false);
+      }
+    }
+  }, []);
   
-      const dataForChart = data.map(domain => ({
-        type: domain.domainName,
-        value: monthsUntilExpiration(domain.expirationDate),
-      }));
-      
-      setChartData(dataForChart);
-    };
+  const columns: ColumnsType<DataType> = [
+    {
+      title: 'Domain Name',
+      dataIndex: 'Name',
+      key: 'Name',
+      sorter: (a, b) => a.Name.localeCompare(b.Name),
+      sortDirections: ['descend', 'ascend'],
+    },
+    {
+      title: 'Hosted Zone Id',
+      dataIndex: 'Id',
+      key: 'Id',
+      sorter: (a, b) => a.Id.localeCompare(b.Id),
+      sortDirections: ['descend', 'ascend'],
+    },
+    {
+      title: 'Resource Record Set Count',
+      dataIndex: 'ResourceRecordSetCount',
+      key: 'ResourceRecordSetCount',
+      sorter: (a, b) => b.ResourceRecordSetCount - a.ResourceRecordSetCount,
+      sortDirections: ['descend', 'ascend'],
+    },
+    {
+      title: 'Private Zone',
+      dataIndex: 'PrivateZone',
+      key: 'PrivateZone',
+      render: (text) => (<span>{text === 'true' ? 'Yes' : 'No'}</span>),
+      sorter: (a, b) => (a.PrivateZone === b.PrivateZone ? 0 : a.PrivateZone ? 1 : -1),
+      sortDirections: ['descend', 'ascend'],
+    },
+  ];
 
-    return (
-      <ViewTableOfDomain>
-        {viewChart === true ? (
-          <>
-            <DomainChart chartData = {chartData} />
-            <StyledButton type='link' onClick={() => setViewChart(false)}>Back to Table</StyledButton>
-          </>
-        ) : (
-          <>
-            <GlobalSearchOfTable>
-              <ViewChartButton onClick={handleViewChart}>View Chart</ViewChartButton>
-              <GlobalSearchOfTableInputField
+  const onSearch: SearchProps['onSearch'] = (value) => {
+    console.log(value)
+  }
+
+  const filteredData = hostedZones.filter(record => 
+    record.Name.toLowerCase().includes(searchText.toLowerCase()) ||
+    record.Id.toLowerCase().includes(searchText.toLowerCase()) ||
+    record.ResourceRecordSetCount.toString().toLowerCase().includes(searchText.toLowerCase()) ||
+    record.PrivateZone.toString().toLowerCase().includes(searchText.toLowerCase())
+  )
+
+  const handleViewChart = () => {
+    setViewChart(true);
+
+    const dataForChart = hostedZones.map((domain) => ({
+      type: domain.Name,
+      value: domain.ResourceRecordSetCount,
+    }));
+
+    setChartData(dataForChart);
+  };
+
+  return (
+    <ViewTableOfDomain>
+      {viewChart === true ? (
+        <>
+          <DomainChart chartData={chartData} />
+          <StyledButton type="link" onClick={() => setViewChart(false)}>
+            Back to Table
+          </StyledButton>
+        </>
+      ) : (
+        <>
+          <GlobalSearchAndViewChart>
+            <ViewChartButton onClick={handleViewChart}>View Chart</ViewChartButton>
+            <GlobalSearchOfTable
                   placeholder="Search"
-                  allowClear
-                  onChange={(e) => setSearchText(e.target.value)}
+                  allowClear 
+                  onChange={(e) => setSearchText(e.target.value)} 
               />
-            </GlobalSearchOfTable>
+            </GlobalSearchAndViewChart>
             <ViewContentOfTable>
                 <ContentOfTable
                     columns={columns}
                     dataSource={filteredData}
+                    loading={loading}
                 />
             </ViewContentOfTable>
           </>
@@ -280,11 +155,11 @@ const ViewChartButton = styled(StyledButton)`
   margin-right: auto;
 `;
 
-const GlobalSearchOfTable = styled.div`
+const GlobalSearchAndViewChart = styled.div`
   display: flex;
 `;
 
-const GlobalSearchOfTableInputField = styled(Input)`
+const GlobalSearchOfTable = styled(Search)`
   width: 12%;
   margin-bottom: 1%;
   justify-content: flex-end;
@@ -294,5 +169,5 @@ const ViewContentOfTable = styled.div`
   margin: 0.4%;
 `;
 
-const ContentOfTable = styled(Table)<{ columns: ColumnsType<DataType>; dataSource: DataType[] }>`
-`;
+const ContentOfTable = styled(Table)<{ columns: ColumnsType<DataType>; dataSource: DataType[] }>``;
+

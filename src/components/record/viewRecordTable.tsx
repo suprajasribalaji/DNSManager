@@ -1,10 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { SearchOutlined, EditOutlined, DeleteRowOutlined } from '@ant-design/icons';
-import { Button, Input, InputRef, Space, Table } from 'antd';
-import Highlighter from 'react-highlight-words';
+import React, { useEffect, useState } from 'react';
+import { Button, Input,Table } from 'antd';
 import styled from 'styled-components';
 import AWS from 'aws-sdk';
-import { ColumnType, ColumnsType } from 'antd/es/table/interface';
+import { ColumnsType } from 'antd/es/table/interface';
 import RecordChart from '../charts/recordChart.tsx';
 import { Buttons } from '../theme/color.tsx';
 
@@ -24,17 +22,12 @@ interface DataType {
   recordId?: string;
 }
 
+const DNSRecords: DataType[] = [];
+
 const ViewRecordTable: React.FC = () => {
-  const [searchText, setSearchText] = useState<string>('');
-  const [searchTextOfColumn, setSearchTextOfColumn] = useState<string>('');
-  const [searchedColumn, setSearchedColumn] = useState<string>('');
-  const searchInputOfColumn = useRef<InputRef>(null);
   const [viewChart, setViewChart] = useState<boolean>(false);
-  const [dnsRecords, setDnsRecords] = useState<DataType[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
-
-  const YOUR_HOSTED_ZONE_ID = 'Z03475321WH1NH01XRPEQ';
 
   useEffect(() => {
     AWS.config.update({
@@ -42,184 +35,155 @@ const ViewRecordTable: React.FC = () => {
       secretAccessKey: 'NTPeGEsBvab72xrgEuEP1OLHxzL1VwQBAqpySk0Q',
       region: 'us-east-1'
     });
-
+  
     const route53 = new AWS.Route53();
-
+  
     const viewDNSRecord = async () => {
-      const domain = 'dnsmanager.live'; 
-      const params = {
-        HostedZoneId: YOUR_HOSTED_ZONE_ID,
-        StartRecordName: domain,
-      };
-
       try {
-        const response = await route53.listResourceRecordSets(params).promise();
-        const records = response.ResourceRecordSets.map((record: any, index: number) => ({
-          key: index.toString(),
-          recordName: record.Name,
-          recordType: record.Type,
-          routingPolicy: record.RoutingPolicy || 'Simple',
-          alias: record.AliasTarget ? 'Yes' : 'No',
-          valueOrRouteTrafficTo: record.ResourceRecords ? record.ResourceRecords.map((rec: any) => rec.Value) : [],
-          ttlInSeconds: record.TTL || 0,
-          healthCheckId: record.HealthCheckId || '-',
-          evaluateTargetHealth: record.EvaluateTargetHealth || '-',
-          recordId: record.ResourceRecordSetId || '-'
-        }));
-        
-        setDnsRecords(records);
-        setLoading(false); 
+        const domains = await route53.listHostedZones().promise();
+        console.log(domains.HostedZones.length);
+  
+        for (let i = 0; i < domains.HostedZones.length; i++) {
+          const DOMAIN = domains.HostedZones[i].Name;
+          const YOUR_HOSTED_ZONE_ID = domains.HostedZones[i].Id;
+          console.log(DOMAIN, YOUR_HOSTED_ZONE_ID);
+  
+          const params = {
+            HostedZoneId: YOUR_HOSTED_ZONE_ID,
+            StartRecordName: DOMAIN
+          };
+  
+          const response = await route53.listResourceRecordSets(params).promise();
+          const records = response.ResourceRecordSets.map((record: any, index: number) => ({
+            key: index.toString(),
+            recordName: record.Name,
+            recordType: record.Type,
+            routingPolicy: record.RoutingPolicy || 'Simple',
+            alias: record.AliasTarget ? 'Yes' : 'No',
+            valueOrRouteTrafficTo: record.ResourceRecords ? record.ResourceRecords.map((rec: any) => rec.Value) : [],
+            ttlInSeconds: record.TTL || 0,
+            healthCheckId: record.HealthCheckId || '-',
+            evaluateTargetHealth: record.EvaluateTargetHealth || '-',
+            recordId: record.ResourceRecordSetId || '-'
+          }));
+
+          console.log('RECORDsss ------ ', records);
+  
+          const uniqueRecords = new Set(records.map(record => JSON.stringify(record)));
+          const uniqueRecordsArray = Array.from(uniqueRecords).map(record => JSON.parse(record));
+  
+          uniqueRecordsArray.forEach((uniqueRecord) => {
+            const exists = DNSRecords.find(existingRecord =>
+              JSON.stringify(existingRecord) === JSON.stringify(uniqueRecord)
+            );
+  
+            if (!exists) {
+              DNSRecords.push(uniqueRecord);
+              setLoading(false);
+            } 
+          });
+  
+          console.log('DNS RECORDs ========= ', DNSRecords);
+        }
       } catch (error) {
         console.error('Error getting DNS records:', error.message);
-        setLoading(false); 
+        setLoading(false);
       }
     };
-
+  
     viewDNSRecord();
   }, []);
-
-
-  const handleReset = (clearFilters: () => void) => {
-    clearFilters();
-    setSearchTextOfColumn('');
-  };
-
-  const handleSearch = (
-    selectedKeys: string[],
-    confirm: () => void,
-    dataIndex: DataIndex,
-  ) => {
-    confirm();
-    setSearchTextOfColumn(selectedKeys[0]);
-    setSearchedColumn(dataIndex.toString());
-    setSearchText('');
-  };
   
-  const getColumnSearchProps = (dataIndex: DataIndex): ColumnType<DataType> => ({
-    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: any) => (
-      <div style={{ padding: 8 }}>
-        <Input
-          ref={searchInputOfColumn}
-          placeholder={`Search ${dataIndex}`}
-          value={selectedKeys[0] || ''}
-          onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-          onPressEnter={() => handleSearch(selectedKeys as string[], confirm, dataIndex)}
-          style={{ marginBottom: 8, display: 'block' }}
-        />
-        <Space>
-          <Button
-            type="primary"
-            onClick={() => handleSearch(selectedKeys as string[], confirm, dataIndex)}
-            icon={<SearchOutlined />}
-            size="small"
-            style={{ width: 90 }}
-          >
-            Search
-          </Button>
-          <Button onClick={() => clearFilters && handleReset(clearFilters)} size="small" style={{ width: 90 }}>
-            Reset
-          </Button>
-        </Space>
-      </div>
-    ),
-    filterIcon: (filtered: boolean) => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />,
-    render: (text: string) =>
-      searchedColumn === dataIndex.toString() ? (
-        <Highlighter
-          highlightStyle={{ backgroundColor: '#ffc069', padding: 0 }}
-          searchWords={[searchTextOfColumn]}
-          autoEscape
-          textToHighlight={text.toString()}
-        />
-      ) : (
-        text
-      ),
-  });  
-
-  const filteredData = dnsRecords.filter(record =>
-    (record.recordName.toLowerCase().includes(searchText.toLowerCase())) ||
-    (record.recordType.toLowerCase().includes(searchText.toLowerCase())) ||
-    (record.routingPolicy?.toLowerCase().includes(searchText.toLowerCase()) ?? false) ||
-    (record.alias.toLowerCase().includes(searchText.toLowerCase())) ||
-    (record.valueOrRouteTrafficTo.join(',').toLowerCase().includes(searchText.toLowerCase())) ||
-    (record.ttlInSeconds.toString().toLowerCase().includes(searchText.toLowerCase())) ||
-    (record.healthCheckId?.toLowerCase().includes(searchText.toLowerCase())) ||
-    (record.evaluateTargetHealth?.toLowerCase().includes(searchText.toLowerCase()) ?? false) ||
-    (record.recordId?.toLowerCase().includes(searchText.toLowerCase()))
-  );
-
   const columns: ColumnsType<DataType> = [
     {
       title: 'Name',
       dataIndex: 'recordName',
       key: 'recordName',
-      ...getColumnSearchProps('recordName'),
+      sorter: (a, b) => a.recordName.localeCompare(b.recordName),
+      sortDirections: ['descend', 'ascend'],
     },
     {
       title: 'Record Type',
       dataIndex: 'recordType',
       key: 'recordType',
-      ...getColumnSearchProps('recordType'),
+      sorter: (a, b) => a.recordType.localeCompare(b.recordType),
+      sortDirections: ['descend', 'ascend'],
     },
     {
       title: 'Routing Policy',
       dataIndex: 'routingPolicy',
       key: 'routingPolicy',
-      ...getColumnSearchProps('routingPolicy'),
+      sorter: (a, b) => {
+        const policy1 = a.routingPolicy || ""
+        const policy2 = b.routingPolicy || ""
+        return policy1.localeCompare(policy2)
+      },
+      sortDirections: ['descend', 'ascend'],
     },
     {
       title: 'Alias',
       dataIndex: 'alias',
       key: 'alias',
-      ...getColumnSearchProps('alias'),
+      sorter: (a, b) => a.alias.localeCompare(b.alias),
+      sortDirections: ['descend', 'ascend'],
     },
     {
       title: 'Value/Route Traffic To',
       dataIndex: 'valueOrRouteTrafficTo',
       key: 'valueOrRouteTrafficTo',
-      ...getColumnSearchProps('valueOrRouteTrafficTo'),
     },
     {
       title: 'TTL (in seconds)',
       dataIndex: 'ttlInSeconds',
       key: 'ttlInSeconds',
-      ...getColumnSearchProps('ttlInSeconds'),
+      sorter: (a, b) => b.ttlInSeconds - a.ttlInSeconds,
+      sortDirections: ['descend', 'ascend'],
     },
     {
       title: 'Health Check ID',
       dataIndex: 'healthCheckId',
       key: 'healthCheckId',
-      ...getColumnSearchProps('healthCheckId'),
+      sorter: (a, b) => {
+        const check1 = a.healthCheckId || ""
+        const check2 = b.healthCheckId || ""
+        return check1.localeCompare(check2)
+      },
+      sortDirections: ['descend', 'ascend'], 
     },
     {
       title: 'Evaluate Target Health',
       dataIndex: 'evaluateTargetHealth',
       key: 'evaluateTargetHealth',
-      ...getColumnSearchProps('evaluateTargetHealth'),
+      sorter: (a, b) => {
+        const check1 = a.evaluateTargetHealth || ""
+        const check2 = b.evaluateTargetHealth || ""
+        return check1.localeCompare(check2)
+      },
+      sortDirections: ['descend', 'ascend'], 
     },
     {
       title: 'Record ID',
       dataIndex: 'recordId',
       key: 'recordId',
-      ...getColumnSearchProps('recordId'),
+      sorter: (a, b) => {
+        const id1 = a.recordId || ""
+        const id2 = b.recordId || ""
+        return id1.localeCompare(id2)
+      },
+      sortDirections: ['descend', 'ascend'], 
     },
   ];
 
   const handleViewChart = () => {
     setViewChart(true);
 
-    const dataForChart = dnsRecords.map(record => ({
+    const dataForChart = DNSRecords.map(record => ({
       type: record.recordType,
       value: record.ttlInSeconds
     }));
     
     setChartData(dataForChart);
   };
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchText(e.target.value);
-  };
-
 
   return (
     <ViewTableOfRecord>
@@ -235,21 +199,20 @@ const ViewRecordTable: React.FC = () => {
             <Input
               placeholder="Search"
               allowClear
-              onChange={handleSearchChange}
               style={{ width: '12%', marginBottom: '1%', justifyContent: 'flex-end' }}
             />
           </GlobalSearchOfTable>
           <ViewContentOfTable>
             {loading ? (
               <LoadingText>Loading...</LoadingText>
-            ) : dnsRecords.length > 0 ? (
+            ) : DNSRecords.length > 0 ? (
               <ContentOfTable
                 columns={columns}
-                dataSource={filteredData}
-                onChange={() => {}} 
+                dataSource={DNSRecords}
+                loading={loading}
               />
             ) : (
-              <LoadingText>No DNS records found</LoadingText>
+              <LoadingText>No DNS records found, Trying to fetch!</LoadingText>
             )}
           </ViewContentOfTable>
         </>
@@ -287,7 +250,6 @@ const ViewContentOfTable = styled.div`
 `;
 
 const ContentOfTable = styled(Table)<{ columns: ColumnsType<DataType>; dataSource: DataType[] }>``;
-
 
 const LoadingText = styled.div`
   font-size: 18px;

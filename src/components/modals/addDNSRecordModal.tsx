@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Button, Form, Modal, Input, Select, message } from 'antd';
-import AWS from 'aws-sdk'; // Import AWS SDK
+import { Button, Form, Modal, Input, Select, message, Row, Col } from 'antd';
+import AWS from 'aws-sdk'; 
 import styled from "styled-components";
 import { Buttons } from "../theme/color.tsx";
+const { v4: uuidv4 } = require('uuid');
 
 const { Option } = Select;
 
@@ -14,7 +15,14 @@ type AddDNSRecordModalProps = {
 const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalOpen, onCancel }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [isDomainExist, setIsDomainExist] = useState<boolean>(true);
   const [form] = Form.useForm(); 
+
+  const route53 = new AWS.Route53({
+    accessKeyId: 'AKIASRL7FVZFLJTGFBYT',
+    secretAccessKey: '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',
+    region: 'us-east-1'
+  });
 
   useEffect(() => {
     if (isDNSRecordModalOpen) {
@@ -22,17 +30,15 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
     }
   }, [isDNSRecordModalOpen]);
 
-  const handleOk = () => {
+  const handleOk = async () => {
     setLoading(true);
+    const hostedZones = await route53.listHostedZonesByName().promise();
     form
       .validateFields()
       .then(values => {
-        const route53 = new AWS.Route53({
-          accessKeyId: 'AKIASRL7FVZFLJTGFBYT',
-          secretAccessKey: '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',
-          region: 'us-east-1'
-        });
-
+        const hostedZoneId = hostedZones.HostedZones.find(zone => zone.Name === values.domainName)?.Id;
+        console.log('id: ', hostedZoneId);
+        
         const params = {
           ChangeBatch: {
             Changes: [
@@ -49,13 +55,14 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
               }
             ]
           },
-          HostedZoneId: 'Z03475321WH1NH01XRPEQ'
+          HostedZoneId: hostedZoneId || ''
         };
 
         route53.changeResourceRecordSets(params, function(err, data) {
           if (err) {
-            message.error('Failed to add DNS record');
+            message.error('Failed to add DNS record, Please check all the inputs!');
             console.error('Error:', err);
+            setLoading(false);
           } else {
             message.success('DNS record added successfully. Please, refresh the page');
             setLoading(false);
@@ -75,29 +82,80 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
     onCancel();
   };
 
+  const isDomainExists = async ()  => { 
+    const hostedZones = await route53.listHostedZonesByName().promise();
+        
+    const domains: string[] = [];
+    for (let i = 0; i < hostedZones.HostedZones.length; i++) {
+      let domain = hostedZones.HostedZones[i].Name;
+      domains.push(domain);
+      if (domain.endsWith('.')) {
+        domain = domain.slice(0, -1);
+      }
+      domains.push(domain);
+    }    
+    
+    const domainName = form.getFieldValue('domainName');
+      if(domains.includes(domainName)) {
+        message.warning('Exists!')
+        setIsDomainExist(true)
+      } else {
+        message.success('Not exists!!')
+        setIsDomainExist(false)
+      }
+    }
+
+    const handleAddDomain = () => {
+      if ( !isDomainExist ) {
+        try {
+          const domainName = form.getFieldValue('domainName')
+          const route53 = new AWS.Route53();
+          const params = {
+            CallerReference: domainName + uuidv4(),
+            Name: domainName,
+            HostedZoneConfig: {
+              PrivateZone: false
+            }
+          }
+          route53.createHostedZone(params, function(err, data) {
+            if(err) {
+              message.error('Failed to add!')
+              console.log('Error: ', err);
+            } else {
+              message.success('Domain Added Successfully!')
+              console.log('Success: ', data);
+            }
+          })          
+        } catch (error) {
+          message.error('Failed to add!')
+          console.log('error at add domain: ', error); 
+        }
+      }
+    }
+
   return (
     <div>
       <Modal
         visible={isModalOpen}
-        title="Add Record"
+        title="DNS RECORD"
         onOk={handleOk}
         onCancel={handleCancel}
         footer={[
           <Button key="back" onClick={handleCancel}>
             Return
           </Button>,
-          <StyledButton key="submit" type="primary" loading={loading} onClick={handleOk}>
-            Submit
+          <StyledButton key="submit" type="link" loading={loading} onClick={handleOk}>
+            Add
           </StyledButton>,
         ]}
       >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="domainName"
-            label="Domain Name"
-            rules={[{ required: true, message: 'Please enter the domain name' }]}
-          >
-            <Input placeholder="Enter the domain name" />
+        <CustomForm form={form} layout="vertical">
+          <Form.Item label="Domain Name" name="domainName" rules={[{ required: true, message: 'Please enter the domain name' }]}>
+            <Row justify="space-between" align="middle"> 
+              <Col> <Input placeholder="Enter the domain name" /> </Col> 
+              <Col> <StyledButton type="link" onClick={isDomainExists}>Is Exists?</StyledButton> </Col>
+              <Col> <StyledButton type="link" onClick={handleAddDomain} disabled={isDomainExist}>Add Domain!</StyledButton> </Col> 
+            </Row> 
           </Form.Item>
           <Form.Item
             name="recordType"
@@ -126,7 +184,7 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
           >
             <Input type="number" placeholder="Enter the TTL in seconds" />
           </Form.Item>
-        </Form>
+        </CustomForm>
       </Modal>
     </div>
   );
@@ -135,11 +193,15 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
 export default AddDNSRecordModal;
 
 const StyledButton = styled(Button)`
-    background-color: ${Buttons.backgroundColor};
-    color: ${Buttons.text};
-    border: none;
-    &&&:hover,
-    &&&:focus {
-        color: ${Buttons.hover};
-    }
+  background-color: ${Buttons.backgroundColor};
+  color: ${Buttons.text};
+  border: none;
+  &&&:hover,
+  &&&:focus {
+      color: ${Buttons.hover};
+  }
+`;
+
+const CustomForm = styled(Form)`
+  margin-top: 5%;
 `;
