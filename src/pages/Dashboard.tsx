@@ -24,7 +24,7 @@ const viewItems = [
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
 
-    const [selectedViewMenu, setSelectedViewMenu] = useState<string>('Domain');
+    const [selectedViewMenu, setSelectedViewMenu] = useState<string>('View');
     const [isDNSRecordModalOpen, setIsDNSRecordModalOpen] = useState<boolean>(false);
 
     const handleViewDropdownItemClick = ({ key }: { key: string }) => {

@@ -7,6 +7,10 @@ import { Buttons } from '../theme/color.tsx';
 import AWS from 'aws-sdk';
 import { SearchProps } from 'antd/es/input/Search';
 
+type DataIndex = keyof DataType;
+
+const { Search } = Input;
+
 interface DataType {
   key: React.Key;
   Id: string;
@@ -20,7 +24,6 @@ const ViewDomainTable: React.FC = () => {
   const [viewChart, setViewChart] = useState<boolean>(false);
   const [chartData, setChartData] = useState<any[]>([]);
   const [hostedZones, setHostedZones] = useState<any[]>([]);
-  const [searchedData, setSearchedData] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -35,11 +38,9 @@ const ViewDomainTable: React.FC = () => {
         const data = await route53.listHostedZones().promise();
         if (data.HostedZones) {
           setHostedZones(data.HostedZones);
-          console.log('Fetched successfully!');
           setLoading(false);
         }
       } catch (error) {
-        console.error('Error fetching hosted zones:', error);
         setLoading(false);
       }
     }
@@ -71,32 +72,25 @@ const ViewDomainTable: React.FC = () => {
       title: 'Private Zone',
       dataIndex: 'PrivateZone',
       key: 'PrivateZone',
-      render: (text) => (<span>{text === 'true' ? 'Yes' : 'No'}</span>),
+      render: (text) => (<span>{text === 'true' ? 'True' : 'False'}</span>),
       sorter: (a, b) => (a.PrivateZone === b.PrivateZone ? 0 : a.PrivateZone ? 1 : -1),
       sortDirections: ['descend', 'ascend'],
     },
   ];
 
   const onSearch: SearchProps['onSearch'] = (value) => {
-    console.log(value)
     setSearchText(value)
-    const filterTable = hostedZones.filter(o =>
-      Object.keys(o).some(k =>
-        String(o[k])
-          .toLowerCase()
-          .includes(value.toLowerCase())
-      )
-    );
-    setSearchedData(filterTable)
   }
 
-  const filteredData = hostedZones.filter(record => 
-    record.Name.toLowerCase().includes(searchText.toLowerCase()) ||
-    record.Id.toLowerCase().includes(searchText.toLowerCase()) ||
-    record.ResourceRecordSetCount.toString().toLowerCase().includes(searchText.toLowerCase()) ||
-    record.PrivateZone.toString().toLowerCase().includes(searchText.toLowerCase())
-  )
-
+  const filteredData = hostedZones.filter(record => {
+    return (
+      record.Name.toLowerCase().includes(searchText.toLowerCase()) ||
+      record.Id.toLowerCase().includes(searchText.toLowerCase()) ||
+      record.ResourceRecordSetCount.toString().toLowerCase().includes(searchText.toLowerCase()) ||
+      record.Config.PrivateZone.toString().toLowerCase().includes(searchText.toLowerCase())
+    );
+  });
+  
   const handleViewChart = () => {
     setViewChart(true);
 
@@ -124,7 +118,7 @@ const ViewDomainTable: React.FC = () => {
             <GlobalSearchOfTable
                   placeholder="Search"
                   allowClear 
-                  onChange={(e) => setSearchText(e.target.value)} 
+                  onChange={(e) => onSearch(e.target.value)} 
               />
             </GlobalSearchAndViewChart>
             <ViewContentOfTable>
@@ -150,7 +144,8 @@ const StyledButton = styled(Button)`
   background-color: ${Buttons.backgroundColor};
   color: ${Buttons.text};
   border: none;
-  &&&:hover {
+  &&&:hover,
+  &&&:focus {
       color: ${Buttons.hover};
   }
 `;
@@ -163,7 +158,7 @@ const GlobalSearchAndViewChart = styled.div`
   display: flex;
 `;
 
-const GlobalSearchOfTable = styled(Input)`
+const GlobalSearchOfTable = styled(Search)`
   width: 12%;
   margin-bottom: 1%;
   justify-content: flex-end;

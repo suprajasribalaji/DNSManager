@@ -98,7 +98,6 @@ const StyledContainer = styled.div`
 
 const StyledFormContainer = styled.div`
   width: 22%;
-
 `;
 
 const StyledButton = styled(Button)`
