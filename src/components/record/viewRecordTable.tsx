@@ -6,8 +6,6 @@ import { ColumnsType } from 'antd/es/table/interface';
 import RecordChart from '../charts/recordChart.tsx';
 import { Buttons } from '../theme/color.tsx';
 
-type DataIndex = keyof DataType;
-
 interface DataType {
   key: React.Key;
   recordName: string;
@@ -27,7 +25,7 @@ const DNSRecords: DataType[] = [];
 const ViewRecordTable: React.FC = () => {
   const [viewChart, setViewChart] = useState<boolean>(false);
   const [chartData, setChartData] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     AWS.config.update({
@@ -79,15 +77,14 @@ const ViewRecordTable: React.FC = () => {
   
             if (!exists) {
               DNSRecords.push(uniqueRecord);
-              setLoading(false);
             } 
           });
-  
+          setLoading(false);
           console.log('DNS RECORDs ========= ', DNSRecords);
         }
       } catch (error) {
         console.error('Error getting DNS records:', error.message);
-        setLoading(false);
+        setLoading(true);
       }
     };
   
@@ -203,17 +200,12 @@ const ViewRecordTable: React.FC = () => {
             />
           </GlobalSearchOfTable>
           <ViewContentOfTable>
-            {loading ? (
-              <LoadingText>Loading...</LoadingText>
-            ) : DNSRecords.length > 0 ? (
-              <ContentOfTable
+             <ContentOfTable
                 columns={columns}
                 dataSource={DNSRecords}
                 loading={loading}
               />
-            ) : (
-              <LoadingText>No DNS records found, Trying to fetch!</LoadingText>
-            )}
+            
           </ViewContentOfTable>
         </>
       )}
@@ -231,8 +223,7 @@ const StyledButton = styled(Button)`
   background-color: ${Buttons.backgroundColor};
   color: ${Buttons.text};
   border: none;
-  &&&:hover,
-  &&&:focus {
+  &&&:hover {
       color: ${Buttons.hover};
   }
 `;
@@ -250,10 +241,3 @@ const ViewContentOfTable = styled.div`
 `;
 
 const ContentOfTable = styled(Table)<{ columns: ColumnsType<DataType>; dataSource: DataType[] }>``;
-
-const LoadingText = styled.div`
-  font-size: 18px;
-  font-weight: bold;
-  text-align: center;
-  padding: 20px;
-`;

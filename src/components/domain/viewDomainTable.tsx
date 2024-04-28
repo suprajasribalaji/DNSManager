@@ -7,10 +7,6 @@ import { Buttons } from '../theme/color.tsx';
 import AWS from 'aws-sdk';
 import { SearchProps } from 'antd/es/input/Search';
 
-type DataIndex = keyof DataType;
-
-const { Search } = Input;
-
 interface DataType {
   key: React.Key;
   Id: string;
@@ -83,6 +79,15 @@ const ViewDomainTable: React.FC = () => {
 
   const onSearch: SearchProps['onSearch'] = (value) => {
     console.log(value)
+    setSearchText(value)
+    const filterTable = hostedZones.filter(o =>
+      Object.keys(o).some(k =>
+        String(o[k])
+          .toLowerCase()
+          .includes(value.toLowerCase())
+      )
+    );
+    setSearchedData(filterTable)
   }
 
   const filteredData = hostedZones.filter(record => 
@@ -145,8 +150,7 @@ const StyledButton = styled(Button)`
   background-color: ${Buttons.backgroundColor};
   color: ${Buttons.text};
   border: none;
-  &&&:hover,
-  &&&:focus {
+  &&&:hover {
       color: ${Buttons.hover};
   }
 `;
@@ -159,7 +163,7 @@ const GlobalSearchAndViewChart = styled.div`
   display: flex;
 `;
 
-const GlobalSearchOfTable = styled(Search)`
+const GlobalSearchOfTable = styled(Input)`
   width: 12%;
   margin-bottom: 1%;
   justify-content: flex-end;

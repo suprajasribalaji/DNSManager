@@ -196,9 +196,8 @@ const StyledButton = styled(Button)`
   background-color: ${Buttons.backgroundColor};
   color: ${Buttons.text};
   border: none;
-  &&&:hover,
-  &&&:focus {
-      color: ${Buttons.hover};
+  &&&:hover {
+    color: ${Buttons.hover};
   }
 `;
 

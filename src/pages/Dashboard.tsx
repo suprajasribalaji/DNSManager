@@ -6,6 +6,9 @@ import ViewRecordTable from '../components/record/viewRecordTable.tsx';
 import ViewDomainTable from '../components/domain/viewDomainTable.tsx';
 import AddDNSRecordModal from '../components/modals/addDNSRecordModal.tsx';
 import { Buttons, PageDivisionBackground } from '../components/theme/color.tsx';
+import { signOut } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
+import { auth } from "../firebase-config";
 
 const viewItems = [
     {
@@ -19,6 +22,8 @@ const viewItems = [
 ];
 
 const Dashboard: React.FC = () => {
+    const navigate = useNavigate();
+
     const [selectedViewMenu, setSelectedViewMenu] = useState<string>('Domain');
     const [isDNSRecordModalOpen, setIsDNSRecordModalOpen] = useState<boolean>(false);
 
@@ -33,7 +38,16 @@ const Dashboard: React.FC = () => {
     const handleAddDNSRecordModalCancel = () => {
         setIsDNSRecordModalOpen(false);
         setSelectedViewMenu('Record');
-    }
+    };
+
+    const handleLogout = async () => {
+        try {
+          await signOut(auth); 
+          navigate('/'); 
+        } catch (error) {
+          console.error('Error signing out:', error);
+        }
+    };
 
     return (
         <DashboardComponent>
@@ -58,6 +72,9 @@ const Dashboard: React.FC = () => {
                         </NavBarDropdownButton>
                         <NavBarDropdownButtonAndModal>
                             <StyledButton type='link' onClick={handleAddDNSRecordModal}>Add DNS Record</StyledButton>
+                        </NavBarDropdownButtonAndModal>
+                        <NavBarDropdownButtonAndModal>
+                            <StyledButton type='link' onClick={handleLogout}>Logout</StyledButton>
                         </NavBarDropdownButtonAndModal>
                     </Space>
                 </NavBarItems>
@@ -124,8 +141,7 @@ const StyledButton = styled(Button)`
     background-color: ${Buttons.backgroundColor};
     color: ${Buttons.text};
     border: none;
-    &&&:hover,
-    &&&:focus {
+    &&&:hover {
         color: ${Buttons.hover};
     }
 `;
