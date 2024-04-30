@@ -202,7 +202,7 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
           >
             <Input type="number" placeholder="Enter the TTL in seconds" />
           </Form.Item>
-          <Form.Item
+          {/* <Form.Item
             name="routingPolicy" 
             label="Routing Policy" 
             rules={[{ required: true, message: 'Please select any policy' }]}
@@ -217,7 +217,7 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
                 <Option value="ip-based">IP based</Option>
                 <Option value="geoproximity">Geoproximity</Option>
             </Select>
-            </Form.Item>
+            </Form.Item> */}
         </CustomForm>
       </Modal>
     </div>
