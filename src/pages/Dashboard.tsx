@@ -4,7 +4,7 @@ import { Button, Dropdown, Menu, Space } from 'antd';
 import { styled } from 'styled-components';
 import ViewRecordTable from '../components/record/viewRecordTable.tsx';
 import ViewDomainTable from '../components/domain/viewDomainTable.tsx';
-import AddDNSRecordModal from '../components/modals/addDNSRecordModal.tsx';
+import AddDNSRecordModal from '../components/modals/AddDNSRecordModal.tsx';
 import { Buttons, PageDivisionBackground } from '../components/theme/color.tsx';
 import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';

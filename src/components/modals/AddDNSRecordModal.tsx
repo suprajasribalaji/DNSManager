@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Button, Form, Modal, Input, Select, message, Row, Col } from 'antd';
+import { PlusOutlined } from "@ant-design/icons";
 import AWS from 'aws-sdk'; 
 import styled from "styled-components";
 import { Buttons } from "../theme/color.tsx";
@@ -50,7 +51,7 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
                   TTL: parseInt(values.ttl, 10), 
                   ResourceRecords: [
                     { Value: values.recordValue }
-                  ]
+                  ],
                 }
               }
             ]
@@ -60,7 +61,7 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
 
         route53.changeResourceRecordSets(params, function(err, data) {
           if (err) {
-            message.error('Failed to add DNS record, Please check all the inputs!');
+            message.error('Already Exists / toPlease check all the inputs!');
             console.error('Error:', err);
             setLoading(false);
           } else {
@@ -120,14 +121,17 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
           route53.createHostedZone(params, function(err, data) {
             if(err) {
               message.error('Failed to add!')
+              setIsDomainExist(false);
               console.log('Error: ', err);
             } else {
-              message.success('Domain Added Successfully!')
+              message.success('Domain Added Successfully!');
+              setIsDomainExist(true)
               console.log('Success: ', data);
             }
           })          
         } catch (error) {
           message.error('Failed to add!')
+          setIsDomainExist(false);
           console.log('error at add domain: ', error); 
         }
       }
@@ -150,7 +154,11 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
         ]}
       >
         <CustomForm form={form} layout="vertical">
-          <Form.Item label="Domain Name" name="domainName" rules={[{ required: true, message: 'Please enter the domain name' }]}>
+          <Form.Item 
+            label="Domain Name" 
+            name="domainName" 
+            rules={[{ required: true, message: 'Please enter the domain name' }]}
+          >
             <Row justify="space-between" align="middle"> 
               <Col> <Input placeholder="Enter the domain name" /> </Col> 
               <Col> <StyledButton type="link" onClick={isDomainExists}>Is Exists?</StyledButton> </Col>
@@ -170,13 +178,23 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
               <Option value="SRV">SRV</Option>
             </Select>
           </Form.Item>
-          <Form.Item
-            name="recordValue"
-            label="Record Value"
-            rules={[{ required: true, message: 'Please enter the record value' }]}
-          >
-            <Input placeholder="Enter the record value" />
-          </Form.Item>
+            <Form.Item
+              name="recordValue"
+              label="Record Value"
+              rules={[{ required: true, message: 'Please enter the record value' }]}
+            >
+              <Row justify="space-between" align="middle"> 
+                <Col> 
+                  <Input 
+                    placeholder= "Enter the record value"
+                  /> 
+                </Col>
+                <Col>
+                    <StyledIconButton type="link"><PlusOutlined /></StyledIconButton> 
+                  </Col>
+                
+              </Row>
+            </Form.Item>
           <Form.Item
             name="ttl"
             label="TTL (seconds)"
@@ -184,6 +202,22 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
           >
             <Input type="number" placeholder="Enter the TTL in seconds" />
           </Form.Item>
+          <Form.Item
+            name="routingPolicy" 
+            label="Routing Policy" 
+            rules={[{ required: true, message: 'Please select any policy' }]}
+          >
+            <Select defaultValue="Simple routing">
+                <Option value="simple-routing">Simple routing</Option>
+                <Option value="weighted">Weighted</Option>
+                <Option value="geolocation">Geolocation</Option>
+                <Option value="latency">latency</Option>
+                <Option value="failover">Failover</Option>
+                <Option value="multivalue-answer">Multivalue answer</Option>
+                <Option value="ip-based">IP based</Option>
+                <Option value="geoproximity">Geoproximity</Option>
+            </Select>
+            </Form.Item>
         </CustomForm>
       </Modal>
     </div>
@@ -203,4 +237,8 @@ const StyledButton = styled(Button)`
 
 const CustomForm = styled(Form)`
   margin-top: 5%;
+`;
+
+const StyledIconButton = styled(StyledButton)`  
+  border-radius: 35%;
 `;

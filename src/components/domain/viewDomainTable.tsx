@@ -1,13 +1,12 @@
 import React, { useEffect,  useState } from 'react';
-import { Button, Input, Table } from 'antd';
+import { Button, Input, Table, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { styled } from 'styled-components';
 import DomainChart from '../charts/domainChart.tsx';
 import { Buttons } from '../theme/color.tsx';
 import AWS from 'aws-sdk';
 import { SearchProps } from 'antd/es/input/Search';
-
-type DataIndex = keyof DataType;
+import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
 
 const { Search } = Input;
 
@@ -25,13 +24,16 @@ const ViewDomainTable: React.FC = () => {
   const [chartData, setChartData] = useState<any[]>([]);
   const [hostedZones, setHostedZones] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isEditDomainModalOpen, setIsEditDomainModalOpen] = useState<boolean>(false);
+  const [record, setRecord] = useState<DataType>();
+
+  const route53 = new AWS.Route53({
+    accessKeyId: 'AKIASRL7FVZFLJTGFBYT',
+    secretAccessKey: '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',
+    region: 'us-east-1',
+  });
 
   useEffect(() => {
-    const route53 = new AWS.Route53({
-      accessKeyId: 'AKIASRL7FVZFLJTGFBYT',
-      secretAccessKey: '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',
-      region: 'us-east-1',
-    });
     fetchHostedZones();
     async function fetchHostedZones() {
       try {
@@ -46,6 +48,17 @@ const ViewDomainTable: React.FC = () => {
     }
   }, []);
   
+  const handleDeleteDomainRow = async (record: DataType) => {
+    try {
+      await route53.deleteHostedZone({ Id: record.Id }).promise();
+      setHostedZones(hostedZones.filter(zone => zone.Id !== record.Id));
+      message.success('Hosted zone deleted successfully');
+    } catch (error) {
+      console.error('Error deleting hosted zone:', error);
+      message.error('Failed to delete hosted zone');
+    }
+  }
+
   const columns: ColumnsType<DataType> = [
     {
       title: 'Domain Name',
@@ -76,6 +89,17 @@ const ViewDomainTable: React.FC = () => {
       sorter: (a, b) => (a.PrivateZone === b.PrivateZone ? 0 : a.PrivateZone ? 1 : -1),
       sortDirections: ['descend', 'ascend'],
     },
+    {
+      title: 'Actions',
+      dataIndex: 'DeleteOrEdit',
+      key: 'DeleteOrEdit',
+      render: (_, record) => (
+        <>
+          <StyledDeleteButton type='link' onClick={() => handleDeleteDomainRow(record)}><DeleteOutlined /></StyledDeleteButton>
+        </>
+      ),
+      align: 'center',
+    }
   ];
 
   const onSearch: SearchProps['onSearch'] = (value) => {
@@ -144,8 +168,7 @@ const StyledButton = styled(Button)`
   background-color: ${Buttons.backgroundColor};
   color: ${Buttons.text};
   border: none;
-  &&&:hover,
-  &&&:focus {
+  &&&:hover {
       color: ${Buttons.hover};
   }
 `;
@@ -170,3 +193,18 @@ const ViewContentOfTable = styled.div`
 
 const ContentOfTable = styled(Table)<{ columns: ColumnsType<DataType>; dataSource: DataType[] }>``;
 
+const StyledDeleteButton = styled(Button)`
+  color: ${Buttons.lightRed};
+  border: none;
+  &&&:hover {
+    color: ${Buttons.red};
+  }
+`;
+
+const StyledEditButton = styled(Button)`
+  color: ${Buttons.backgroundColor};
+  border: none;
+  &&&:hover {
+    color: ${Buttons.hover};
+  }
+`;
