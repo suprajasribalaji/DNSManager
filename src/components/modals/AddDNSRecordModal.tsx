@@ -207,7 +207,7 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
             label="Routing Policy" 
             rules={[{ required: true, message: 'Please select any policy' }]}
           >
-            <Select defaultValue="Simple routing">
+            <Select defaultValue="Simple routing" disabled>
                 <Option value="simple-routing">Simple routing</Option>
                 <Option value="weighted">Weighted</Option>
                 <Option value="geolocation">Geolocation</Option>
