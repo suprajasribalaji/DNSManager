@@ -165,7 +165,7 @@ const EditRecord: React.FC<EditRecordProps> = ({ record, isEditModalOpen, setIsE
                     {
                         record?.healthCheckId !== '-' ? 
                             <Form.Item label="Health Check ID">
-                                <Input defaultValue={record?.healthCheckId}/>
+                                <Input defaultValue={0?.healthCheckId}/>
                             </Form.Item> 
                         : 
                             <></>

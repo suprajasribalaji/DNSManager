@@ -17,6 +17,8 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
   const [loading, setLoading] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [isDomainExist, setIsDomainExist] = useState<boolean>(true);
+  const [isAddingDomain, setIsAddingDomain] = useState<boolean>(false); 
+  const [recordValues, setRecordValues] = useState<string[]>(['']);   
   const [form] = Form.useForm(); 
 
   const route53 = new AWS.Route53({
@@ -49,9 +51,7 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
                   Name: values.domainName,
                   Type: values.recordType,
                   TTL: parseInt(values.ttl, 10), 
-                  ResourceRecords: [
-                    { Value: values.recordValue }
-                  ],
+                  ResourceRecords: recordValues.map(value => ({ Value: value })),
                 }
               }
             ]
@@ -61,7 +61,7 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
 
         route53.changeResourceRecordSets(params, function(err, data) {
           if (err) {
-            message.error('Already Exists / toPlease check all the inputs!');
+            message.error('Already Exists / Please check all the inputs!');
             console.error('Error:', err);
             setLoading(false);
           } else {
@@ -97,45 +97,59 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
     }    
     
     const domainName = form.getFieldValue('domainName');
-      if(domains.includes(domainName)) {
-        message.warning('Exists!')
-        setIsDomainExist(true)
-      } else {
-        message.success('Not exists!!')
-        setIsDomainExist(false)
-      }
+    if(domains.includes(domainName)) {
+      message.warning('Exists!')
+      setIsDomainExist(true)
+    } else {
+      message.success('Not exists!!')
+      setIsDomainExist(false)
     }
+  }
 
-    const handleAddDomain = () => {
-      if ( !isDomainExist ) {
-        try {
-          const domainName = form.getFieldValue('domainName')
-          const route53 = new AWS.Route53();
-          const params = {
-            CallerReference: domainName + uuidv4(),
-            Name: domainName,
-            HostedZoneConfig: {
-              PrivateZone: false
-            }
+  const handleAddDomain = async() => {
+    if (!isDomainExist && !isAddingDomain) { 
+      try {
+        setIsAddingDomain(true);
+        const domainName = form.getFieldValue('domainName')
+        const route53 = new AWS.Route53();
+        const params = {
+          CallerReference: domainName + uuidv4(),
+          Name: domainName,
+          HostedZoneConfig: {
+            PrivateZone: false
           }
-          route53.createHostedZone(params, function(err, data) {
-            if(err) {
-              message.error('Failed to add!')
-              setIsDomainExist(false);
-              console.log('Error: ', err);
-            } else {
-              message.success('Domain Added Successfully!');
-              setIsDomainExist(true)
-              console.log('Success: ', data);
-            }
-          })          
-        } catch (error) {
-          message.error('Failed to add!')
-          setIsDomainExist(false);
-          console.log('error at add domain: ', error); 
         }
+        
+        await route53.createHostedZone(params, function(err, data) {
+          if(err) {
+            message.error('Failed to add!')
+            setIsDomainExist(false);
+            console.log('Error: ', err);
+          } else {
+            message.success('Domain Added Successfully!');
+            setIsDomainExist(true)
+            console.log('Success: ', data);
+          }
+          setIsAddingDomain(false); 
+        });    
+      } catch (error) {
+        message.error('Failed to add!')
+        setIsDomainExist(false);
+        console.log('error at add domain: ', error); 
+        setIsAddingDomain(false); 
       }
     }
+  }
+
+  const handleAddRecordValue = () => {
+    setRecordValues([...recordValues, '']);
+  };
+
+  const handleRecordValueChange = (index: number, value: string) => {
+    const newRecordValues = [...recordValues];
+    newRecordValues[index] = value;
+    setRecordValues(newRecordValues);
+  };
 
   return (
     <div>
@@ -162,7 +176,7 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
             <Row justify="space-between" align="middle"> 
               <Col> <Input placeholder="Enter the domain name" /> </Col> 
               <Col> <StyledButton type="link" onClick={isDomainExists}>Is Exists?</StyledButton> </Col>
-              <Col> <StyledButton type="link" onClick={handleAddDomain} disabled={isDomainExist}>Add Domain!</StyledButton> </Col> 
+              <Col> <StyledButton type="link" onClick={handleAddDomain} disabled={isDomainExist || isAddingDomain}>Add Domain!</StyledButton> </Col> 
             </Row> 
           </Form.Item>
           <Form.Item
@@ -178,23 +192,28 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
               <Option value="SRV">SRV</Option>
             </Select>
           </Form.Item>
+          {recordValues.map((value, index) => (
             <Form.Item
-              name="recordValue"
-              label="Record Value"
+              key={index}
+              label={`Record Value`}
               rules={[{ required: true, message: 'Please enter the record value' }]}
             >
               <Row justify="space-between" align="middle"> 
                 <Col> 
                   <Input 
                     placeholder= "Enter the record value"
+                    value={value}
+                    onChange={(e) => handleRecordValueChange(index, e.target.value)}
                   /> 
                 </Col>
-                <Col>
-                    <StyledIconButton type="link"><PlusOutlined /></StyledIconButton> 
-                  </Col>
-                
               </Row>
             </Form.Item>
+          ))}
+          <Row justify="end">
+            <Col>
+              <StyledButton type="link" onClick={handleAddRecordValue}>Add Record Value <PlusOutlined /></StyledButton>
+            </Col>
+          </Row>
           <Form.Item
             name="ttl"
             label="TTL (seconds)"

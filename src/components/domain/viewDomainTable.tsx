@@ -1,5 +1,5 @@
 import React, { useEffect,  useState } from 'react';
-import { Button, Input, Table, message } from 'antd';
+import { Button, Input, Popconfirm, Table, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { styled } from 'styled-components';
 import DomainChart from '../charts/domainChart.tsx';
@@ -24,8 +24,6 @@ const ViewDomainTable: React.FC = () => {
   const [chartData, setChartData] = useState<any[]>([]);
   const [hostedZones, setHostedZones] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [isEditDomainModalOpen, setIsEditDomainModalOpen] = useState<boolean>(false);
-  const [record, setRecord] = useState<DataType>();
 
   const route53 = new AWS.Route53({
     accessKeyId: 'AKIASRL7FVZFLJTGFBYT',
@@ -95,7 +93,14 @@ const ViewDomainTable: React.FC = () => {
       key: 'DeleteOrEdit',
       render: (_, record) => (
         <>
-          <StyledDeleteButton type='link' onClick={() => handleDeleteDomainRow(record)}><DeleteOutlined /></StyledDeleteButton>
+          <Popconfirm
+            title="Are you sure to delete?"
+            okText="Sure"
+            cancelText="Return"
+            onConfirm={() => handleDeleteDomainRow(record)}
+          >
+            <StyledDeleteButton type='link' icon={<DeleteOutlined />} />
+          </Popconfirm>
         </>
       ),
       align: 'center',

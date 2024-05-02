@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Input, Spin, Table, message } from 'antd';
+import { Button, Input, Popconfirm, Spin, Table, message } from 'antd';
 import styled from 'styled-components';
 import AWS from 'aws-sdk';
 import { ColumnsType } from 'antd/es/table/interface';
@@ -282,7 +282,14 @@ const ViewRecordTable: React.FC = () => {
       key: 'DeleteOrEdit',
       render: (_, record) => (
         <>
-          <StyledDeleteButton type='link' onClick={() => handleDeleteRecord(record)} loading={actionLoading}><DeleteOutlined /></StyledDeleteButton>
+          <Popconfirm
+            title="Are you sure to delete?"
+            okText="Sure"
+            cancelText="Return"
+            onConfirm={() => handleDeleteRecord(record)}
+          >
+            <StyledDeleteButton type='link' icon={<DeleteOutlined />} />
+          </Popconfirm>          
           <StyledEditButton type='link' onClick={() => handleEditRecord(record)}><EditOutlined /></StyledEditButton>
         </>
       ),
