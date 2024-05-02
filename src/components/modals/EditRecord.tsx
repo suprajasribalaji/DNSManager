@@ -106,7 +106,7 @@ const EditRecord: React.FC<EditRecordProps> = ({ record, isEditModalOpen, setIsE
                 <CustomForm form={form} layout="vertical" initialValues={record}>
                     <Form.Item label="Name" name="recordName">
                         <Tooltip title="Edit the subdomain only else can't update">
-                            <Input defaultValue={record?.recordName}/>
+                            <Input defaultValue={record?.recordName} disabled/>
                         </Tooltip>
                     </Form.Item>
 
