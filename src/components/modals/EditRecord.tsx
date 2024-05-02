@@ -64,7 +64,7 @@ const EditRecord: React.FC<EditRecordProps> = ({ record, isEditModalOpen, setIsE
                                 Name: values.recordName,
                                 Type: values.recordType,
                                 TTL: values.ttlInSeconds,
-                                ResourceRecords: recordValues.map(value => ({ Value: value })),
+                                ResourceRecords: [{ Value: values.valueOrRouteTrafficTo.toString() }],
                             }
                         }
                     ]
