@@ -53,29 +53,6 @@ const EditRecord: React.FC<EditRecordProps> = ({ record, isEditModalOpen, setIsE
             if (!record || !YOUR_HOSTED_ZONE_ID) {
                 throw new Error('HostedZoneId is missing or undefined.');
             }
-    
-            let resourceRecords: { Value: string }[] = [];
-
-            if (values.recordType === "SRV") {
-                const [priority, weight, port, target] = values.valueOrRouteTrafficTo.split(' ');
-                resourceRecords.push({
-                    Value: `${priority} ${weight} ${port} ${target}`
-                });
-            } else if (values.recordType === "MX") {
-                const [priority, mail_server_host_name] = values.valuesOrRouteTrafficTo.split(' ');
-                resourceRecords.push({
-                    Value: `${priority} ${mail_server_host_name}`
-                })
-            } else if (values.recordType === "CAA") {
-                const [flag, tag, value] = values.valuesOrRouteTrafficTo.split(' ');
-                resourceRecords.push({
-                    Value: `${flag} ${tag} ${value}`
-                })
-            } else {
-                resourceRecords.push({
-                    Value: values.valueOrRouteTrafficTo
-                });
-            }
 
             const params = {
                 HostedZoneId: YOUR_HOSTED_ZONE_ID,
@@ -87,7 +64,7 @@ const EditRecord: React.FC<EditRecordProps> = ({ record, isEditModalOpen, setIsE
                                 Name: values.recordName,
                                 Type: values.recordType,
                                 TTL: values.ttlInSeconds,
-                                ResourceRecords: resourceRecords,
+                                ResourceRecords: recordValues.map(value => ({ Value: value })),
                             }
                         }
                     ]
