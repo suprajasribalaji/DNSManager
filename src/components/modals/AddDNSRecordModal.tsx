@@ -40,7 +40,7 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
       .validateFields()
       .then(values => {
         const hostedZoneId = hostedZones.HostedZones.find(zone => zone.Name === values.domainName)?.Id;
-        console.log('id: ', hostedZoneId);
+        // console.log('id: ', hostedZoneId);
         
         const params = {
           ChangeBatch: {

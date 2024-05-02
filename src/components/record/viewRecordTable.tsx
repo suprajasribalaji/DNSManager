@@ -60,11 +60,11 @@ const ViewRecordTable: React.FC = () => {
           };
 
           const response = await route53.listResourceRecordSets(params).promise();
-          console.log('response: ', response);
+          // console.log('response: ', response);
           const healthCheckIdForAllZone = await route53.listHealthChecks().promise();
           const healthCheckIds = healthCheckIdForAllZone.HealthChecks.map(healthCheck => healthCheck.Id);
           setHealthCheckId(healthCheckIds);
-          console.log(healthCheckId);
+          // console.log(healthCheckId);
 
           // const rp = await route53.li().promise();
           // console.log('rp =================>>>>>>>>>>>>> ', rp);
@@ -94,7 +94,7 @@ const ViewRecordTable: React.FC = () => {
               JSON.stringify(existingRecord) === JSON.stringify(uniqueRecord)
             );
 
-            console.log("exostongggggggg",exists);
+            // console.log("exostongggggggg",exists);
             
 
             if (!exists) {
@@ -103,7 +103,7 @@ const ViewRecordTable: React.FC = () => {
           });
         }
 
-        console.log('edeefefefefef ',DNSRecords);
+        // console.log('edeefefefefef ',DNSRecords);
         
         setSearchedRecords(DNSRecords);
         setIsDataLoaded(true);
@@ -145,7 +145,7 @@ const ViewRecordTable: React.FC = () => {
         console.error('Hosted zone not found for record:', record.recordName);
       }
 
-      console.log("----======---- ", YOUR_HOSTED_ZONE_ID);
+      // console.log("----======---- ", YOUR_HOSTED_ZONE_ID);
       
       const params = {
         HostedZoneId: YOUR_HOSTED_ZONE_ID,
@@ -177,7 +177,7 @@ const ViewRecordTable: React.FC = () => {
   }
 
   const handleEditRecord = async (record: DataType) => {
-    console.log('record ---------->>>>>>>>>>> ',record);
+    // console.log('record ---------->>>>>>>>>>> ',record);
     if(record.recordType === 'SOA' || record.recordType === 'NS') {
       message.info(`For SOA / NS, Can't edit record`);
       setIsEditModalOpen(false);
