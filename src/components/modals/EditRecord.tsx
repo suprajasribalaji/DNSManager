@@ -1,4 +1,5 @@
-import { Button, Form, Input, Modal, Select, Switch, Tooltip, message } from "antd";
+import { Button, Col, Form, Input, Modal, Row, Select, Tooltip, message } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
 import React, { Dispatch, SetStateAction, useState } from "react";
 import styled from "styled-components";
 import { Buttons } from "../theme/color.tsx";
@@ -27,8 +28,7 @@ type EditRecordProps = {
 
 const EditRecord: React.FC<EditRecordProps> = ({ record, isEditModalOpen, setIsEditModalOpen }) => {
     const [loading, setLoading] = useState<boolean>(false);
-    const [isAliasChecked, setIsAliasChecked] = useState<boolean>(record?.alias === 'No' ? false : true);
-    const [recordRoutingPolicy, setRecordRoutingPolicy] = useState<string | undefined>(record?.routingPolicy);
+    const [recordValues, setRecordValues] = useState<string[]>(['']);   
 
     const [form] = Form.useForm();
 
@@ -54,6 +54,29 @@ const EditRecord: React.FC<EditRecordProps> = ({ record, isEditModalOpen, setIsE
                 throw new Error('HostedZoneId is missing or undefined.');
             }
     
+            let resourceRecords: { Value: string }[] = [];
+
+            if (values.recordType === "SRV") {
+                const [priority, weight, port, target] = values.valueOrRouteTrafficTo.split(' ');
+                resourceRecords.push({
+                    Value: `${priority} ${weight} ${port} ${target}`
+                });
+            } else if (values.recordType === "MX") {
+                const [priority, mail_server_host_name] = values.valuesOrRouteTrafficTo.split(' ');
+                resourceRecords.push({
+                    Value: `${priority} ${mail_server_host_name}`
+                })
+            } else if (values.recordType === "CAA") {
+                const [flag, tag, value] = values.valuesOrRouteTrafficTo.split(' ');
+                resourceRecords.push({
+                    Value: `${flag} ${tag} ${value}`
+                })
+            } else {
+                resourceRecords.push({
+                    Value: values.valueOrRouteTrafficTo
+                });
+            }
+
             const params = {
                 HostedZoneId: YOUR_HOSTED_ZONE_ID,
                 ChangeBatch: {
@@ -64,7 +87,7 @@ const EditRecord: React.FC<EditRecordProps> = ({ record, isEditModalOpen, setIsE
                                 Name: values.recordName,
                                 Type: values.recordType,
                                 TTL: values.ttlInSeconds,
-                                ResourceRecords: [{ Value: values.valueOrRouteTrafficTo.toString() }],
+                                ResourceRecords: resourceRecords,
                             }
                         }
                     ]
@@ -72,26 +95,19 @@ const EditRecord: React.FC<EditRecordProps> = ({ record, isEditModalOpen, setIsE
             };
     
             await route53.changeResourceRecordSets(params).promise();
+
             message.success('Record updated successfully. Please Refresh the page!');
             setIsEditModalOpen(false);
         } catch (error) {
             console.error('Error updating record:', error);
-            message.error('Failed to update record.');
+            message.error('Failed to update record. Please ensure all the details are correct!');
         } finally {
             setLoading(false);
         }
     };
-    
-
-    const onChange = (checked: boolean) => {
-        console.log(`switch to ${checked}`);
-        setIsAliasChecked(checked);
-        message.info('Please once ensure the record value!');
-    }
 
     const handleRoutingPolicyChange = (policy: string) => {
         console.log(`Switched to --> `, policy);
-        setRecordRoutingPolicy(policy);
     }
 
     return (
@@ -120,18 +136,11 @@ const EditRecord: React.FC<EditRecordProps> = ({ record, isEditModalOpen, setIsE
                     <Form.Item label="Record Type" name="recordType" >
                         <Select defaultValue={record?.recordType}>
                             <Option value="PTR">PTR</Option>
-                            <Option value="SPF">SPF</Option>
+                            <Option value="CAA">CAA</Option>
                             <Option value="TXT">TXT</Option>
                             <Option value="MX">MX</Option>
                             <Option value="SRV">SRV</Option>
                         </Select>
-                    </Form.Item>
-
-                    <Form.Item name="alias" style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ marginRight: '10px' }}>Alias</span>
-                        {
-                            record?.alias === 'No' ? <Switch onChange={onChange} disabled /> : <Switch defaultChecked onChange={onChange} disabled />
-                        }
                     </Form.Item>
 
                     <Form.Item label="Value/Route Traffic To" name="valueOrRouteTrafficTo" >
@@ -154,78 +163,6 @@ const EditRecord: React.FC<EditRecordProps> = ({ record, isEditModalOpen, setIsE
                             <Option value="geoproximity">Geoproximity</Option>
                         </Select>
                     </Form.Item>
-                    {/* {
-                        record?.differentiator ? 
-                            <Form.Item label="Differentiator">
-                                <Input defaultValue={record.differentiator}/>
-                            </Form.Item>    
-                        :
-                            <></>
-                    }
-                    {
-                        record?.healthCheckId !== '-' ? 
-                            <Form.Item label="Health Check ID">
-                                <Input defaultValue={0?.healthCheckId}/>
-                            </Form.Item> 
-                        : 
-                            <></>
-                    }
-                    {
-                        record?.evaluateTargetHealth !== '-' ? 
-                            <Form.Item label="Evaluate Target Health">
-                                <Input defaultValue={record?.evaluateTargetHealth} />
-                            </Form.Item>
-                        :
-                            <></>
-                    }
-                    {
-                        record?.recordId !== '-' ? 
-                            <Form.Item label="Record ID">
-                                <Input defaultValue={record?.recordId} />
-                            </Form.Item>
-                        :
-                            <></>
-                    }
-                    {
-                        recordRoutingPolicy === 'weighted' ? 
-                            <Form.Item label="Weight">
-                                <Input />
-                            </Form.Item>
-                        : 
-                        recordRoutingPolicy === 'geolocation' ? 
-                            <>
-                                <Form.Item label="Location"><Input/></Form.Item> 
-                            </>
-                        : 
-                        recordRoutingPolicy === 'latency' ? 
-                            <>
-                                <Form.Item label="Region"><Input/></Form.Item> 
-                            </>
-                        :
-                        recordRoutingPolicy === 'failover' ? 
-                            <>
-                                <Form.Item label="Failover Record Type"><Input/></Form.Item> 
-                            </>
-                        :
-                        recordRoutingPolicy === 'multivalue-answer' ? 
-                            <>
-                                <Form.Item label="Health Check (optional)"><Input/></Form.Item> 
-                                <Form.Item label="Record ID"><Input/></Form.Item> 
-                            </>
-                        :
-                        recordRoutingPolicy === 'ip-based' ? 
-                            <>
-                                <Form.Item label="IP-based"><Input/></Form.Item> 
-                            </>
-                        :
-                        recordRoutingPolicy === 'geoproximity' ? 
-                            <>
-                                <Form.Item label="Endpoint Locatiion Type"><Input/></Form.Item> 
-                                <Form.Item label="Bias"><Input/></Form.Item>
-                            </>
-                        : 
-                            <></>
-                    } */}
                 </CustomForm>
             </Modal>
         </div>

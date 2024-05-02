@@ -151,6 +151,12 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
     setRecordValues(newRecordValues);
   };
 
+  const handleDeleteRecordValue = (indexToRemove: number) => {
+    const newRecordValues = [...recordValues];
+    newRecordValues.splice(indexToRemove, 1); // Remove the record value at the specified index
+    setRecordValues(newRecordValues);
+  };
+
   return (
     <div>
       <Modal
@@ -186,7 +192,7 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
           >
             <Select placeholder="Select the record type">
               <Option value="PTR">PTR</Option>
-              <Option value="SPF">SPF</Option>
+              <Option value="CAA">CAA</Option>
               <Option value="TXT">TXT</Option>
               <Option value="MX">MX</Option>
               <Option value="SRV">SRV</Option>
@@ -198,13 +204,16 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
               label={`Record Value`}
               rules={[{ required: true, message: 'Please enter the record value' }]}
             >
-              <Row justify="space-between" align="middle"> 
-                <Col> 
-                  <Input 
-                    placeholder= "Enter the record value"
+              <Row justify="space-between" align="middle">
+                <Col>
+                  <Input
+                    placeholder="Enter the record value"
                     value={value}
                     onChange={(e) => handleRecordValueChange(index, e.target.value)}
-                  /> 
+                  />
+                </Col>
+                <Col>
+                  <StyledButton type="link" onClick={() => handleDeleteRecordValue(index)}>Delete</StyledButton> {/* Delete button */}
                 </Col>
               </Row>
             </Form.Item>
