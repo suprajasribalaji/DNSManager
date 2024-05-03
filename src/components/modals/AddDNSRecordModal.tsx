@@ -175,13 +175,13 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
       >
         <CustomForm form={form} layout="vertical">
           <Form.Item 
-            label="Domain Name" 
+            label="Domain Name (Kindly check domain before the addition)"  
             name="domainName" 
             rules={[{ required: true, message: 'Please enter the domain name' }]}
           >
             <Row justify="space-between" align="middle"> 
               <Col> <Input placeholder="Enter the domain name" /> </Col> 
-              <Col> <StyledButton type="link" onClick={isDomainExists}>Is Exists?</StyledButton> </Col>
+              <Col> <StyledButton type="link" onClick={isDomainExists}>Is Domain Exists?</StyledButton> </Col>
               <Col> <StyledButton type="link" onClick={handleAddDomain} disabled={isDomainExist || isAddingDomain}>Add Domain!</StyledButton> </Col> 
             </Row> 
           </Form.Item>
