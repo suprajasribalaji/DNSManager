@@ -48,12 +48,31 @@ const ViewDomainTable: React.FC = () => {
   
   const handleDeleteDomainRow = async (record: DataType) => {
     try {
+      const { ResourceRecordSets } = await route53.listResourceRecordSets({ HostedZoneId: record.Id }).promise();
+
+    // Filter out NS and SOA record sets
+    const recordSetsToDelete = ResourceRecordSets.filter(rrs => !['NS', 'SOA'].includes(rrs.Type));
+
+    // Delete each non-NS and non-SOA resource record set
+    await Promise.all(recordSetsToDelete.map(async (rrs) => {
+      await route53.changeResourceRecordSets({
+        HostedZoneId: record.Id,
+        ChangeBatch: {
+          Changes: [
+            {
+              Action: 'DELETE',
+              ResourceRecordSet: rrs
+            }
+          ]
+        }
+      }).promise();
+    }));
       await route53.deleteHostedZone({ Id: record.Id }).promise();
       setHostedZones(hostedZones.filter(zone => zone.Id !== record.Id));
       message.success('Hosted zone deleted successfully');
     } catch (error) {
       console.error('Error deleting hosted zone:', error);
-      message.error('Failed to delete hosted zone');
+      message.error(`${error}`);
     }
   }
 
@@ -190,6 +209,7 @@ const GlobalSearchOfTable = styled(Search)`
   width: 12%;
   margin-bottom: 1%;
   justify-content: flex-end;
+  margin-left: 72%;
 `;
 
 const ViewContentOfTable = styled.div`
