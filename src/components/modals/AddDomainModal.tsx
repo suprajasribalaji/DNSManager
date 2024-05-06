@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Button, Form, Input, Modal, Radio, message } from "antd";
+import { Alert, Button, Form, Input, Modal, Radio, Space, message } from "antd";
 import AWS from 'aws-sdk'; 
 import styled from "styled-components";
 import { Buttons } from "../theme/color.tsx";
@@ -13,38 +13,46 @@ type AddDomainModalProps = {
 const AddDomainModal : React.FC<AddDomainModalProps> = ({ isDomainModalOpen, onCancel }) => {
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [loading, setLoading] = useState<boolean>(false);
+    const [showAlert, setShowAlert] = useState<boolean>(false);
 
     const [form] = Form.useForm(); 
 
     const route53 = new AWS.Route53({
-        accessKeyId: 'AKIASRL7FVZFLJTGFBYT',
-        secretAccessKey: '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',
-        region: 'us-east-1',
-      });
+    accessKeyId: 'AKIASRL7FVZFLJTGFBYT',
+    secretAccessKey: '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',
+    region: 'us-east-1',
+    });
 
     useEffect(() => {
-        setIsModalOpen(isDomainModalOpen); // Simplified setting modal open state
+        setIsModalOpen(isDomainModalOpen);
     }, [isDomainModalOpen]);
 
     const handleOk = async () => {
         setLoading(true);
         try {
-            const values = await form.validateFields();
-            const domainName = values.domainName + '.';
-            
-            const params = {
-                CallerReference: domainName + uuidv4(),
-                Name: domainName,
-                HostedZoneConfig: {
-                    PrivateZone: false
+            if (showAlert) { 
+                const values = await form.validateFields();
+                let domainName = values.domainName;
+                if (!domainName.endsWith('.')){
+                    domainName = domainName + '.';
                 }
+                
+                const params = {
+                    CallerReference: domainName + uuidv4(),
+                    Name: domainName.endsWith('.') ? domainName : domainName + '.',
+                    HostedZoneConfig: {
+                        PrivateZone: false
+                    }
+                }
+                
+                await route53.createHostedZone(params).promise();
+        
+                message.success('Domain added successfully. Please, Refresh the page');
+                setIsModalOpen(false);
+                setLoading(false);
+            } else { 
+                setIsModalOpen(false);
             }
-            
-            await route53.createHostedZone(params).promise();
-    
-            message.success('Domain added successfully. Please, Refresh the page');
-            console.log('Domain added successfully');
-            setIsModalOpen(false);
         } catch (error) {
             setLoading(false);
             message.error(`${error}`);
@@ -57,6 +65,11 @@ const AddDomainModal : React.FC<AddDomainModalProps> = ({ isDomainModalOpen, onC
         onCancel();
     };
 
+    const handleAlertCancel = () => {
+        setShowAlert(false); 
+        setIsModalOpen(false);
+    };
+
     return (
         <Modal
             visible={isModalOpen}
@@ -67,7 +80,7 @@ const AddDomainModal : React.FC<AddDomainModalProps> = ({ isDomainModalOpen, onC
                 <Button key="back" onClick={handleCancel}>
                     Return
                 </Button>,
-                <StyledButton key="submit" type="link" loading={loading} onClick={handleOk}>
+                <StyledButton key="submit" type="link" loading={loading} onClick={() => setShowAlert(true)}>
                     Add
                 </StyledButton>,
             ]}
@@ -81,6 +94,21 @@ const AddDomainModal : React.FC<AddDomainModalProps> = ({ isDomainModalOpen, onC
                     <Input placeholder="Enter the domain name" />  
                 </Form.Item>
             </CustomForm>
+            {showAlert && (
+                <Alert
+                    message="Are you sure?"
+                    description="Already Exists! Still want to create with same name?"
+                    type="info"
+                    action={
+                        <Space direction="vertical">
+                            <StyledButton size="small" type="link" onClick={handleOk}>Accept</StyledButton>
+                            <Button size="small" danger ghost onClick={handleAlertCancel}>Decline</Button>
+                        </Space>
+                    }
+                    closable
+                    onClose={handleAlertCancel}
+                />
+            )}
         </Modal>
     )
 };
@@ -88,14 +116,14 @@ const AddDomainModal : React.FC<AddDomainModalProps> = ({ isDomainModalOpen, onC
 export default AddDomainModal;
 
 const StyledButton = styled(Button)`
-  background-color: ${Buttons.backgroundColor};
-  color: ${Buttons.text};
-  border: none;
-  &&&:hover {
-    color: ${Buttons.hover};
-  }
+    background-color: ${Buttons.backgroundColor};
+    color: ${Buttons.text};
+    border: none;
+    &&&:hover {
+        color: ${Buttons.hover};
+    }
 `;
 
 const CustomForm = styled(Form)`
-  margin-top: 5%;
+    margin-top: 5%;
 `;
