@@ -16,15 +16,15 @@ type AddDNSRecordModalProps = {
 const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalOpen, onCancel }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [isDomainExist, setIsDomainExist] = useState<boolean>(true);
-  const [isAddingDomain, setIsAddingDomain] = useState<boolean>(false); 
+  // const [isDomainExist, setIsDomainExist] = useState<boolean>(true);
+  // const [isAddingDomain, setIsAddingDomain] = useState<boolean>(false); 
   const [recordValues, setRecordValues] = useState<string[]>(['']);   
   const [form] = Form.useForm(); 
 
   const route53 = new AWS.Route53({
     accessKeyId: 'AKIASRL7FVZFLJTGFBYT',
     secretAccessKey: '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',
-    region: 'us-east-1'
+    region: 'us-east-1',
   });
 
   useEffect(() => {
@@ -32,56 +32,6 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
       setIsModalOpen(true);
     }
   }, [isDNSRecordModalOpen]);
-
-  const handleOk = async () => {
-    setLoading(true);
-    const hostedZones = await route53.listHostedZonesByName().promise();
-    form
-      .validateFields()
-      .then(values => {
-        const hostedZoneId = hostedZones.HostedZones.find(zone => zone.Name === values.domainName)?.Id;
-        // console.log('id: ', hostedZoneId);
-        
-        const params = {
-          ChangeBatch: {
-            Changes: [
-              {
-                Action: 'CREATE',
-                ResourceRecordSet: {
-                  Name: values.domainName,
-                  Type: values.recordType,
-                  TTL: parseInt(values.ttl, 10), 
-                  ResourceRecords: recordValues.map(value => ({ Value: value })),
-                }
-              }
-            ]
-          },
-          HostedZoneId: hostedZoneId || ''
-        };
-
-        route53.changeResourceRecordSets(params, function(err, data) {
-          if (err) {
-            message.error('Already Exists / Please check all the inputs!');
-            console.error('Error:', err);
-            setLoading(false);
-          } else {
-            message.success('DNS record added successfully. Please, refresh the page');
-            setLoading(false);
-            setIsModalOpen(false);
-            form.resetFields(); 
-          }
-        });
-      })
-      .catch(error => {
-        console.log('Validation failed:', error);
-        setLoading(false);
-      });
-  };
-
-  const handleCancel = () => {
-    setIsModalOpen(false);
-    onCancel();
-  };
 
   const isDomainExists = async ()  => { 
     const hostedZones = await route53.listHostedZonesByName().promise();
@@ -98,19 +48,20 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
     
     const domainName = form.getFieldValue('domainName');
     if(domains.includes(domainName)) {
-      message.warning('Exists!')
-      setIsDomainExist(true)
+      console.log('Exists!')
+      // setIsDomainExist(true)
+      return true;
     } else {
-      message.success('Not exists!!')
-      setIsDomainExist(false)
+      console.log('Not exists!!')
+      // setIsDomainExist(false)
+      return false;
     }
   }
 
-  const handleAddDomain = async() => {
-    if (!isDomainExist && !isAddingDomain) { 
+  const handleAddDomain = async(isDomainExist: boolean, domainName: string) => {
+    if (!isDomainExist) { 
       try {
-        setIsAddingDomain(true);
-        const domainName = form.getFieldValue('domainName')
+        // setIsAddingDomain(true);
         const route53 = new AWS.Route53();
         const params = {
           CallerReference: domainName + uuidv4(),
@@ -120,26 +71,152 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
           }
         }
         
-        await route53.createHostedZone(params, function(err, data) {
-          if(err) {
-            message.error('Failed to add!')
-            setIsDomainExist(false);
-            console.log('Error: ', err);
-          } else {
-            message.success('Domain Added Successfully!');
-            setIsDomainExist(true)
-            console.log('Success: ', data);
-          }
-          setIsAddingDomain(false); 
-        });    
+        await route53.createHostedZone(params).promise();
+
+        // setIsDomainExist(true);
+        console.log('Domain added successfully!');
+        return true;
       } catch (error) {
-        message.error('Failed to add!')
-        setIsDomainExist(false);
-        console.log('error at add domain: ', error); 
-        setIsAddingDomain(false); 
+        // setIsDomainExist(false);
+        console.log('Error adding domain:', error);
+        return false;
       }
     }
   }
+
+  const handleOk = async () => {
+    setLoading(true);
+    try {
+      form.validateFields().then(async values => {
+        let domainName = values.domainName;
+        let hostedZoneId;
+        
+        // Check if the domain exists
+        const hostedZones = await route53.listHostedZonesByName().promise();
+        const domainExists = hostedZones.HostedZones.some(zone => zone.Name === `${domainName}.`);
+        console.log('domain exists ? ', domainExists);
+        
+        if (!domainExists) {
+          // If domain doesn't exist, create it
+          try {
+            
+            const isDomainCreated = handleAddDomain(domainExists, domainName);
+            isDomainCreated
+              .then(async() => {
+                console.log(domainName, 'Domain created successfully!');
+                
+                // After creating the domain, directly add the DNS record
+                // Continue with adding the DNS record
+                const hostedZonesByName = await route53.listHostedZonesByName().promise();
+                console.log('hosted zone by name : ', hostedZonesByName);
+                
+                const zones = hostedZonesByName.HostedZones;
+                console.log('zones: ', zones);
+
+                domainName = domainName.endsWith('.') ? domainName : domainName + '.'
+                console.log('domain name: ', domainName);
+                
+                for(let i=0;i<zones.length;i++) {
+                  if( zones[i].Name === domainName ) {
+                    hostedZoneId = zones[i].Id;
+                    break;
+                  }
+                }
+
+                console.log('hosted zone id: ', hostedZoneId);
+                
+                const params = {
+                  ChangeBatch: {
+                    Changes: [
+                      {
+                        Action: 'CREATE',
+                        ResourceRecordSet: {
+                          Name: domainName.endsWith('.') ? domainName : domainName + '.',
+                          Type: values.recordType,
+                          TTL: parseInt(values.ttl, 10),
+                          ResourceRecords: recordValues.map(value => ({ Value: value })),
+                        },
+                      },
+                    ],
+                  },
+                  HostedZoneId: hostedZoneId || ''
+                };
+
+                await route53.changeResourceRecordSets(params, function (err, data) {
+                  if (err) {
+                    setLoading(false);
+                    message.error('Failed to add DNS record!');
+                    console.error('Error adding DNS record:', err);
+                  } else {
+                    message.success('DNS record added successfully. Please, refresh the page');
+                    setLoading(false);
+                    setIsModalOpen(false);
+                    form.resetFields();
+                  }
+                });
+
+              })
+              .catch(() => console.log('Failed to create domain'));     
+
+          } catch (error) {
+            console.log('Error at domain creation: ', error);
+          }
+        } else {
+          const zones = hostedZones.HostedZones;
+          console.log('zones: ', zones);
+
+          domainName = domainName.endsWith('.') ? domainName : domainName + '.';
+          console.log('domain name: ', domainName);
+
+          for(let i=0;i<zones.length;i++) {
+            if( zones[i].Name === domainName ) {
+              hostedZoneId = zones[i].Id;
+              break;
+            }
+          }
+          const params = {
+            ChangeBatch: {
+              Changes: [
+                {
+                  Action: 'CREATE',
+                  ResourceRecordSet: {
+                    Name: domainName.endsWith('.') ? domainName : domainName + '.',
+                    Type: values.recordType,
+                    TTL: parseInt(values.ttl, 10),
+                    ResourceRecords: recordValues.map(value => ({ Value: value })),
+                  },
+                },
+              ],
+            },
+            HostedZoneId: hostedZoneId || ''
+          };
+
+          await route53.changeResourceRecordSets(params, function (err, data) {
+            if (err) {
+              setLoading(false);
+              message.error('Failed to add DNS record!');
+              console.error('Error adding DNS record:', err);
+            } else {
+              message.success('DNS record added successfully. Please, refresh the page');
+              setLoading(false);
+              setIsModalOpen(false);
+              form.resetFields();
+            }
+          });
+        }
+
+        setLoading(false);
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      setLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsModalOpen(false);
+    onCancel();
+  };
 
   const handleAddRecordValue = () => {
     setRecordValues([...recordValues, '']);
@@ -153,7 +230,7 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
 
   const handleDeleteRecordValue = (indexToRemove: number) => {
     const newRecordValues = [...recordValues];
-    newRecordValues.splice(indexToRemove, 1); // Remove the record value at the specified index
+    newRecordValues.splice(indexToRemove, 1);
     setRecordValues(newRecordValues);
   };
 
@@ -175,15 +252,11 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
       >
         <CustomForm form={form} layout="vertical">
           <Form.Item 
-            label="Domain Name (Kindly check domain before the addition)"  
+            label="Domain Name"  
             name="domainName" 
             rules={[{ required: true, message: 'Please enter the domain name' }]}
           >
-            <Row justify="space-between" align="middle"> 
-              <Col> <Input placeholder="Enter the domain name" /> </Col> 
-              <Col> <StyledButton type="link" onClick={isDomainExists}>Is Domain Exists?</StyledButton> </Col>
-              <Col> <StyledButton type="link" onClick={handleAddDomain} disabled={isDomainExist || isAddingDomain}>Add Domain!</StyledButton> </Col> 
-            </Row> 
+            <Input placeholder="Enter the domain name" />  
           </Form.Item>
           <Form.Item
             name="recordType"
@@ -265,8 +338,4 @@ const StyledButton = styled(Button)`
 
 const CustomForm = styled(Form)`
   margin-top: 5%;
-`;
-
-const StyledIconButton = styled(StyledButton)`  
-  border-radius: 35%;
 `;

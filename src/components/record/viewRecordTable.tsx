@@ -69,8 +69,6 @@ const ViewRecordTable: React.FC = () => {
           // const rp = await route53.li().promise();
           // console.log('rp =================>>>>>>>>>>>>> ', rp);
           
-       
-          
           const records = response.ResourceRecordSets.map((record: any) => ({
             key: `${record.Name}-${record.Type}-${record.ResourceRecordSetId || ''}`,
             recordName: record.Name,
@@ -95,7 +93,6 @@ const ViewRecordTable: React.FC = () => {
             );
 
             // console.log("exostongggggggg",exists);
-            
 
             if (!exists) {
               DNSRecords.push(uniqueRecord);
