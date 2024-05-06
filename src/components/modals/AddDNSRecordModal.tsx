@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Button, Form, Modal, Input, Select, message, Row, Col } from 'antd';
+import { Button, Form, Modal, Input, Select, message, Row, Col, Space, Alert } from 'antd';
 import { PlusOutlined } from "@ant-design/icons";
 import AWS from 'aws-sdk'; 
 import styled from "styled-components";
@@ -16,7 +16,8 @@ type AddDNSRecordModalProps = {
 const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalOpen, onCancel }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [recordValues, setRecordValues] = useState<string[]>(['']);   
+  const [recordValues, setRecordValues] = useState<string[]>(['']);  
+  const [showAlert, setShowAlert] = useState<boolean>(false); 
   const [form] = Form.useForm(); 
 
   const route53 = new AWS.Route53({
@@ -26,33 +27,31 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
   });
 
   useEffect(() => {
-    if (isDNSRecordModalOpen) {
-      setIsModalOpen(true);
-    }
+    setIsModalOpen(isDNSRecordModalOpen);
   }, [isDNSRecordModalOpen]);
 
-  const handleAddDomain = async(isDomainExist: boolean, domainName: string) => {
-    if (!isDomainExist) { 
-      try {
-        const route53 = new AWS.Route53();
+  const handleAddDomain = async (domainName: string) => {
+    try {
+      const hostedZones = await route53.listHostedZonesByName().promise();
+      const domainExists = hostedZones.HostedZones.some(zone => zone.Name === `${domainName}.`);
+      console.log('domain exists ? ', domainExists);
+      if (!domainExists) {
         const params = {
           CallerReference: domainName + uuidv4(),
           Name: domainName,
           HostedZoneConfig: {
             PrivateZone: false
           }
-        }
-        
+        };
         await route53.createHostedZone(params).promise();
-
         console.log('Domain added successfully!');
-        return true;
-      } catch (error) {
-        console.log('Error adding domain:', error);
-        return false;
       }
+      return domainExists;
+    } catch (error) {
+      console.log('Error adding domain:', error);
+      return false;
     }
-  }
+  };
 
   const handleOk = async () => {
     setLoading(true);
@@ -61,89 +60,33 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
         let domainName = values.domainName;
         let hostedZoneId;
         
-        // Check if the domain exists
-        const hostedZones = await route53.listHostedZonesByName().promise();
-        const domainExists = hostedZones.HostedZones.some(zone => zone.Name === `${domainName}.`);
-        console.log('domain exists ? ', domainExists);
-        
+        const domainExists = await handleAddDomain(domainName);
+        console.log('Domain exists:', domainExists);
+
         if (!domainExists) {
-          // If domain doesn't exist, create it
-          try {
-            
-            const isDomainCreated = handleAddDomain(domainExists, domainName);
-            isDomainCreated
-              .then(async() => {
-                console.log(domainName, 'Domain created successfully!');
-                
-                // After creating the domain, directly add the DNS record
-                // Continue with adding the DNS record
-                const hostedZonesByName = await route53.listHostedZonesByName().promise();
-                console.log('hosted zone by name : ', hostedZonesByName);
-                
-                const zones = hostedZonesByName.HostedZones;
-                console.log('zones: ', zones);
-
-                domainName = domainName.endsWith('.') ? domainName : domainName + '.'
-                console.log('domain name: ', domainName);
-                
-                for(let i=0;i<zones.length;i++) {
-                  if( zones[i].Name === domainName ) {
-                    hostedZoneId = zones[i].Id;
-                    break;
-                  }
-                }
-
-                console.log('hosted zone id: ', hostedZoneId);
-                
-                const params = {
-                  ChangeBatch: {
-                    Changes: [
-                      {
-                        Action: 'CREATE',
-                        ResourceRecordSet: {
-                          Name: domainName.endsWith('.') ? domainName : domainName + '.',
-                          Type: values.recordType,
-                          TTL: parseInt(values.ttl, 10),
-                          ResourceRecords: recordValues.map(value => ({ Value: value })),
-                        },
-                      },
-                    ],
-                  },
-                  HostedZoneId: hostedZoneId || ''
-                };
-
-                await route53.changeResourceRecordSets(params, function (err, data) {
-                  if (err) {
-                    setLoading(false);
-                    message.error('Failed to add DNS record!');
-                    console.error('Error adding DNS record:', err);
-                  } else {
-                    message.success('DNS record added successfully. Please, refresh the page');
-                    setLoading(false);
-                    setIsModalOpen(false);
-                    form.resetFields();
-                  }
-                });
-
-              })
-              .catch(() => console.log('Failed to create domain'));     
-
-          } catch (error) {
-            console.log('Error at domain creation: ', error);
-          }
+          setShowAlert(true);
+          setLoading(false); // Set loading to false here to enable the modal interaction
         } else {
-          const zones = hostedZones.HostedZones;
+          // Directly add the DNS record
+          // Continue with adding the DNS record
+          const hostedZonesByName = await route53.listHostedZonesByName().promise();
+          console.log('hosted zone by name : ', hostedZonesByName);
+          
+          const zones = hostedZonesByName.HostedZones;
           console.log('zones: ', zones);
 
           domainName = domainName.endsWith('.') ? domainName : domainName + '.';
           console.log('domain name: ', domainName);
-
+          
           for(let i=0;i<zones.length;i++) {
             if( zones[i].Name === domainName ) {
               hostedZoneId = zones[i].Id;
               break;
             }
           }
+
+          console.log('hosted zone id: ', hostedZoneId);
+          
           const params = {
             ChangeBatch: {
               Changes: [
@@ -174,8 +117,6 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
             }
           });
         }
-
-        setLoading(false);
       });
     } catch (error) {
       console.error('Error:', error);
@@ -202,6 +143,11 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
     const newRecordValues = [...recordValues];
     newRecordValues.splice(indexToRemove, 1);
     setRecordValues(newRecordValues);
+  };
+
+  const handleAlertCancel = () => {
+    setShowAlert(false);
+    setIsModalOpen(false); // Close the modal if the user declines the alert
   };
 
   return (
@@ -273,23 +219,22 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
           >
             <Input type="number" placeholder="Enter the TTL in seconds" />
           </Form.Item>
-          {/* <Form.Item
-            name="routingPolicy" 
-            label="Routing Policy" 
-            rules={[{ required: true, message: 'Please select any policy' }]}
-          >
-            <Select defaultValue="Simple routing" disabled>
-                <Option value="simple-routing">Simple routing</Option>
-                <Option value="weighted">Weighted</Option>
-                <Option value="geolocation">Geolocation</Option>
-                <Option value="latency">latency</Option>
-                <Option value="failover">Failover</Option>
-                <Option value="multivalue-answer">Multivalue answer</Option>
-                <Option value="ip-based">IP based</Option>
-                <Option value="geoproximity">Geoproximity</Option>
-            </Select>
-            </Form.Item> */}
         </CustomForm>
+        {showAlert && (
+          <Alert
+            message="Are you sure?"
+            description="New Domain name found! Still want to create with this name?"
+            type="info"
+            action={
+              <Space direction="vertical">
+                <StyledButton size="small" type="link" onClick={handleOk}>Accept</StyledButton>
+                <Button size="small" danger ghost onClick={handleAlertCancel}>Decline</Button>
+              </Space>
+            }
+            closable
+            onClose={handleAlertCancel}
+          />
+        )}
       </Modal>
     </div>
   );
