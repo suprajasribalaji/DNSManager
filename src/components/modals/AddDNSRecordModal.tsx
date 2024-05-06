@@ -16,8 +16,6 @@ type AddDNSRecordModalProps = {
 const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalOpen, onCancel }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  // const [isDomainExist, setIsDomainExist] = useState<boolean>(true);
-  // const [isAddingDomain, setIsAddingDomain] = useState<boolean>(false); 
   const [recordValues, setRecordValues] = useState<string[]>(['']);   
   const [form] = Form.useForm(); 
 
@@ -33,35 +31,9 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
     }
   }, [isDNSRecordModalOpen]);
 
-  const isDomainExists = async ()  => { 
-    const hostedZones = await route53.listHostedZonesByName().promise();
-        
-    const domains: string[] = [];
-    for (let i = 0; i < hostedZones.HostedZones.length; i++) {
-      let domain = hostedZones.HostedZones[i].Name;
-      domains.push(domain);
-      if (domain.endsWith('.')) {
-        domain = domain.slice(0, -1);
-      }
-      domains.push(domain);
-    }    
-    
-    const domainName = form.getFieldValue('domainName');
-    if(domains.includes(domainName)) {
-      console.log('Exists!')
-      // setIsDomainExist(true)
-      return true;
-    } else {
-      console.log('Not exists!!')
-      // setIsDomainExist(false)
-      return false;
-    }
-  }
-
   const handleAddDomain = async(isDomainExist: boolean, domainName: string) => {
     if (!isDomainExist) { 
       try {
-        // setIsAddingDomain(true);
         const route53 = new AWS.Route53();
         const params = {
           CallerReference: domainName + uuidv4(),
@@ -73,11 +45,9 @@ const AddDNSRecordModal: React.FC<AddDNSRecordModalProps> = ({ isDNSRecordModalO
         
         await route53.createHostedZone(params).promise();
 
-        // setIsDomainExist(true);
         console.log('Domain added successfully!');
         return true;
       } catch (error) {
-        // setIsDomainExist(false);
         console.log('Error adding domain:', error);
         return false;
       }

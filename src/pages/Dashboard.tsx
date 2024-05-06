@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CaretDownOutlined } from '@ant-design/icons';
 import { Button, Dropdown, Menu, Space } from 'antd';
 import { styled } from 'styled-components';
@@ -9,8 +9,20 @@ import { Buttons, PageDivisionBackground } from '../components/theme/color.tsx';
 import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { auth } from "../firebase-config";
+import AddDomainModal from '../components/modals/AddDomainModal.tsx';
 
 const viewItems = [
+    {
+        label: 'Domain',
+        key: 'Domain',
+    },
+    {
+        label: 'Record',
+        key: 'Record',
+    },
+];
+
+const addItems = [
     {
         label: 'Domain',
         key: 'Domain',
@@ -25,14 +37,29 @@ const Dashboard: React.FC = () => {
     const navigate = useNavigate();
 
     const [selectedViewMenu, setSelectedViewMenu] = useState<string>('View');
+    const [selectedAddMenu , setSelectedAddMenu] = useState<string>('Add');
     const [isDNSRecordModalOpen, setIsDNSRecordModalOpen] = useState<boolean>(false);
+    const [isDomainModalOpen, setIsDomainModalOpen] = useState<boolean>(false);
 
+    useEffect(() => {
+        if( selectedAddMenu === 'Record' ) {
+            setIsDNSRecordModalOpen(true);
+        } else if (selectedAddMenu === 'Domain' ) {
+            setIsDomainModalOpen(true);
+        }
+    }, [selectedAddMenu])
+    
     const handleViewDropdownItemClick = ({ key }: { key: string }) => {
         setSelectedViewMenu(key);
     };
 
-    const handleAddDNSRecordModal = () => {
-        setIsDNSRecordModalOpen(true);
+    const handleAddDropdownItemClick = ({ key }: { key: string }) => {
+        setSelectedAddMenu(key);
+    }
+
+    const handleAddDomainModalCancel = () => {
+        setIsDomainModalOpen(false);
+        setSelectedViewMenu('Domain');
     };
 
     const handleAddDNSRecordModalCancel = () => {
@@ -71,7 +98,17 @@ const Dashboard: React.FC = () => {
                             </Dropdown>
                         </NavBarDropdownButton>
                         <NavBarDropdownButtonAndModal>
-                            <StyledButton type='link' onClick={handleAddDNSRecordModal}>Add DNS Record</StyledButton>
+                        <Dropdown 
+                                overlay={
+                                    <Menu onClick={handleAddDropdownItemClick}>
+                                        {addItems.map(item => (
+                                            <Menu.Item key={item.key}>{item.label}</Menu.Item>
+                                        ))}
+                                    </Menu>
+                                }
+                            >
+                                <StyledButton type='link'>{selectedAddMenu}<CaretDownOutlined /></StyledButton>
+                            </Dropdown>
                         </NavBarDropdownButtonAndModal>
                         <NavBarDropdownButtonAndModal>
                             <StyledButton type='link' onClick={handleLogout}>Logout</StyledButton>
@@ -81,16 +118,22 @@ const Dashboard: React.FC = () => {
             </DashboardNavBar>            
             <ViewTableOfDomainOrRecord>
                 {
-                    isDNSRecordModalOpen ? 
-                        (
-                            <>
-                    <AddDNSRecordModal 
-                        isDNSRecordModalOpen={isDNSRecordModalOpen} 
-                        onCancel={handleAddDNSRecordModalCancel} 
-                    />
-                                <ViewRecordTable />
-                            </>
-                        )
+                    (selectedAddMenu === 'Record' && isDNSRecordModalOpen) ?
+                        <>
+                            <AddDNSRecordModal 
+                                isDNSRecordModalOpen={isDNSRecordModalOpen} 
+                                onCancel={handleAddDNSRecordModalCancel} 
+                            />
+                            <ViewRecordTable />
+                        </>
+                    : (selectedAddMenu === 'Domain' && isDomainModalOpen) ?
+                        <>
+                            <AddDomainModal 
+                                isDomainModalOpen={isDomainModalOpen} 
+                                onCancel={handleAddDomainModalCancel} 
+                            />
+                            <ViewDomainTable />
+                        </>
                     : selectedViewMenu === 'Record' ? 
                         <ViewRecordTable /> 
                     : selectedViewMenu === 'Domain' ? 
